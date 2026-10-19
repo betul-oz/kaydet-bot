@@ -12,3 +12,4 @@ __pycache__/
 !.env.example
 cookies*.txt
 *.cookies
+*.log

@@ -76,4 +76,4 @@ python -m pytest
 Proje hafızası: `docs/SPEC.md`, `KARARLAR.md`, `IS-LISTESI.json`, `ILERLEME.md`.
 
 ## Lisans
-MIT (LICENSE dosyasını yayınlamadan önce ekle).
+MIT, bkz. [LICENSE](LICENSE).
