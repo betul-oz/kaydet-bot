@@ -13,3 +13,11 @@
 - **Doğrulanmadı:** Gerçek Telegram'a bağlanma. Proje klasöründe `.env`, `config.yaml`, `categories.yaml` yoktu (yalnızca `*.example`). Kullanıcı bu dosyaları oluşturunca `python -m app` ile açılış ve gerçek link denemesi yapılmalı.
 - Bilinen sınırlar: TikTok kısa linki kaydederken bot en fazla ~30 sn bekleyebilir; bekleyen buton seçimleri bellekte tutulur (bot yeniden başlarsa "süresi dolmuş" der); `auto_download` iş 5'te uygulanacak.
 - Sıradaki: önce gerçek token denemesi, sonra **İş 4 (web ana sayfa)**.
+
+## 2026-10-19 — Oturum 3 (devam): İş 4, 5, 6, 7 bitti
+- Yapıldı: web ana sayfa (kanban, sürükle-bırak, not, ara/filtre), indirme kuyruğu (yt-dlp, durum, hata, "hepsini indir", `auto_download`), plan kartı + Kopyala, README (TR+EN özet), Dockerfile.
+- Test: 64 geçti. Gerçek tarayıcıda denendi (kanban, kart, kopyalama). Gerçek indirme denendi (YouTube, ffmpeg ile birleşik mp4); bu sırada format hatası bulunup düzeltildi.
+- Denetçi (Opus) bulguları düzeltildi: not/kopyala yarışı, CSRF, allowed_hosts, atomik kuyruğa alma, boş başlık, cookies .gitignore (KARARLAR #15-19).
+- **Doğrulanmadı:** Gerçek Telegram bağlantısı. Kullanıcı `.env` içine token, `config.yaml` içine `allowed_user_ids` yazmadı/yazamadı (proje klasöründe boş şablonlar var). Token'ı ben girmem.
+- Bilinen sınırlar: Instagram çoğu zaman giriş ister (başlık/indirme için `cookies_file` gerekir); bekleyen bot buton seçimleri bellekte; TikTok kısa linkte bot ~30 sn bekleyebilir.
+- Sıradaki: kullanıcı token+ID'yi yazınca `python -m app` ile bot denemesi → sonra **İş 8 (toplu içe aktarma)**; v2: ffmpeg birleştirme.

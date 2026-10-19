@@ -38,9 +38,10 @@ STATUSES = {"kayitli", "bekliyor", "iniyor", "indirildi", "hata"}
 
 
 def connect(path: str | Path) -> sqlite3.Connection:
-    conn = sqlite3.connect(str(path), check_same_thread=False)
+    conn = sqlite3.connect(str(path), check_same_thread=False, timeout=15)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")  # bot, web ve indirme ayrı bağlantılarla çalışır
     conn.executescript(SCHEMA)
     return conn
 
@@ -118,7 +119,107 @@ def set_status(conn: sqlite3.Connection, item_id: int, status: str, *,
     return cur.rowcount > 0
 
 
+def claim_for_download(conn: sqlite3.Connection, item_id: int) -> bool:
+    """Durumu tek SQL ile 'bekliyor' yapar; zaten sırada/iniyorsa veya kayıt yoksa False (çift indirmeyi önler)."""
+    cur = conn.execute(
+        "UPDATE items SET status = 'bekliyor', error = '' "
+        "WHERE id = ? AND status NOT IN ('bekliyor', 'iniyor')", (item_id,))
+    conn.commit()
+    return cur.rowcount > 0
+
+
 def delete_item(conn: sqlite3.Connection, item_id: int) -> bool:
     cur = conn.execute("DELETE FROM items WHERE id = ?", (item_id,))
     conn.commit()
     return cur.rowcount > 0
+
+
+# ---- Plan kartları ----
+
+def create_card(conn: sqlite3.Connection, title: str, note: str = "") -> int:
+    cur = conn.execute("INSERT INTO cards (title, note) VALUES (?, ?)", (title, note))
+    conn.commit()
+    return cur.lastrowid
+
+
+def update_card(conn: sqlite3.Connection, card_id: int, *, title: str | None = None,
+                note: str | None = None) -> bool:
+    if conn.execute("SELECT 1 FROM cards WHERE id = ?", (card_id,)).fetchone() is None:
+        return False
+    if title is not None:
+        conn.execute("UPDATE cards SET title = ? WHERE id = ?", (title, card_id))
+    if note is not None:
+        conn.execute("UPDATE cards SET note = ? WHERE id = ?", (note, card_id))
+    conn.commit()
+    return True
+
+
+def delete_card(conn: sqlite3.Connection, card_id: int) -> bool:
+    cur = conn.execute("DELETE FROM cards WHERE id = ?", (card_id,))
+    conn.commit()
+    return cur.rowcount > 0
+
+
+def _card_items(conn: sqlite3.Connection, card_id: int) -> list[dict]:
+    rows = conn.execute(
+        "SELECT i.*, ci.position AS position, ci.note AS card_note FROM card_items ci "
+        "JOIN items i ON i.id = ci.item_id WHERE ci.card_id = ? "
+        "ORDER BY ci.position, i.id", (card_id,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_card(conn: sqlite3.Connection, card_id: int) -> dict | None:
+    row = conn.execute("SELECT * FROM cards WHERE id = ?", (card_id,)).fetchone()
+    if row is None:
+        return None
+    card = dict(row)
+    card["items"] = _card_items(conn, card_id)
+    return card
+
+
+def list_cards(conn: sqlite3.Connection) -> list[dict]:
+    ids = [r["id"] for r in conn.execute("SELECT id FROM cards ORDER BY id DESC")]
+    return [get_card(conn, i) for i in ids]
+
+
+def add_card_item(conn: sqlite3.Connection, card_id: int, item_id: int) -> bool:
+    """Karta video ekler (sona). Kart/video yoksa veya zaten ekliyse False."""
+    if conn.execute("SELECT 1 FROM cards WHERE id = ?", (card_id,)).fetchone() is None \
+            or conn.execute("SELECT 1 FROM items WHERE id = ?", (item_id,)).fetchone() is None:
+        return False
+    pos = conn.execute("SELECT COALESCE(MAX(position), -1) + 1 FROM card_items WHERE card_id = ?",
+                       (card_id,)).fetchone()[0]
+    cur = conn.execute("INSERT OR IGNORE INTO card_items (card_id, item_id, position) VALUES (?, ?, ?)",
+                       (card_id, item_id, pos))
+    conn.commit()
+    return cur.rowcount > 0
+
+
+def remove_card_item(conn: sqlite3.Connection, card_id: int, item_id: int) -> bool:
+    cur = conn.execute("DELETE FROM card_items WHERE card_id = ? AND item_id = ?", (card_id, item_id))
+    conn.commit()
+    return cur.rowcount > 0
+
+
+def set_card_item_note(conn: sqlite3.Connection, card_id: int, item_id: int, note: str) -> bool:
+    cur = conn.execute("UPDATE card_items SET note = ? WHERE card_id = ? AND item_id = ?",
+                       (note, card_id, item_id))
+    conn.commit()
+    return cur.rowcount > 0
+
+
+def move_card_item(conn: sqlite3.Connection, card_id: int, item_id: int, direction: int) -> bool:
+    """direction -1 = yukarı, +1 = aşağı. Sıra numaraları yeniden 0..n-1 yazılır."""
+    order = [r["item_id"] for r in conn.execute(
+        "SELECT item_id FROM card_items WHERE card_id = ? ORDER BY position, item_id", (card_id,))]
+    if item_id not in order or direction not in (-1, 1):
+        return False
+    i = order.index(item_id)
+    j = i + direction
+    if 0 <= j < len(order):
+        order[i], order[j] = order[j], order[i]
+    for pos, iid in enumerate(order):
+        conn.execute("UPDATE card_items SET position = ? WHERE card_id = ? AND item_id = ?",
+                     (pos, card_id, iid))
+    conn.commit()
+    return True

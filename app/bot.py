@@ -68,6 +68,9 @@ async def save_parsed(context: ContextTypes.DEFAULT_TYPE, parsed: Parsed,
                                   category=category, subcategory=subcategory)
     if is_new:
         context.application.create_task(enrich_item(conn, item_id, url, meta))
+        downloader = context.bot_data.get("downloader")
+        if downloader is not None and context.bot_data["config"].auto_download:
+            downloader.enqueue(item_id)
     return is_new, url, item_id
 
 

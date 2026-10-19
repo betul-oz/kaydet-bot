@@ -10,3 +10,5 @@ __pycache__/
 *.sqlite*
 .env.*
 !.env.example
+cookies*.txt
+*.cookies

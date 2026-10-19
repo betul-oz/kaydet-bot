@@ -1,14 +1,59 @@
 {
   "proje": "kaydet-bot",
   "isler": [
-    {"id": 1, "ad": "SPEC, KARARLAR, is listesi", "durum": "bitti", "model": "Opus 5.5"},
-    {"id": 2, "ad": "Iskelet: klasor yapisi, config/categories okuma, SQLite katmani, .gitignore, testler", "durum": "bitti", "model": "Sonnet 5.5"},
-    {"id": 3, "ad": "Telegram botu: link tanima, butonlu kategori secimi, kisa yol, izin listesi, cift kayit", "durum": "kod bitti, gercek token denemesi bekliyor", "model": "Sonnet 5.5"},
-    {"id": 4, "ad": "Web ana sayfa: kategori>alt baslik>kart, surukle-birak, arama/filtre, not", "durum": "bekliyor", "model": "Sonnet 5.5"},
-    {"id": 5, "ad": "Video indirme (yt-dlp): kuyruk, durum, hata, hepsini indir", "durum": "bekliyor", "model": "Sonnet 5.5"},
-    {"id": 6, "ad": "Plan karti + Kopyala dugmesi", "durum": "bekliyor", "model": "Sonnet 5.5"},
-    {"id": 7, "ad": "README (TR+EN), Dockerfile, uctan uca kurulum denemesi", "durum": "bekliyor", "model": "Sonnet 5.5"},
-    {"id": 8, "ad": "Toplu ice aktarma (IG/TikTok verilerimi indir JSON)", "durum": "bekliyor", "model": "Sonnet 5.5"},
-    {"id": 9, "ad": "v2: ffmpeg ile video birlestirme", "durum": "ertelendi", "model": "Sonnet 5.5"}
+    {
+      "id": 1,
+      "ad": "SPEC, KARARLAR, is listesi",
+      "durum": "bitti",
+      "model": "Opus 5.5"
+    },
+    {
+      "id": 2,
+      "ad": "Iskelet: klasor yapisi, config/categories okuma, SQLite katmani, .gitignore, testler",
+      "durum": "bitti",
+      "model": "Sonnet 5.5"
+    },
+    {
+      "id": 3,
+      "ad": "Telegram botu: link tanima, butonlu kategori secimi, kisa yol, izin listesi, cift kayit",
+      "durum": "kod bitti, gercek token denemesi bekliyor",
+      "model": "Sonnet 5.5"
+    },
+    {
+      "id": 4,
+      "ad": "Web ana sayfa: kategori>alt baslik>kart, surukle-birak, arama/filtre, not",
+      "durum": "bitti",
+      "model": "Sonnet 5.5"
+    },
+    {
+      "id": 5,
+      "ad": "Video indirme (yt-dlp): kuyruk, durum, hata, hepsini indir",
+      "durum": "bitti",
+      "model": "Sonnet 5.5"
+    },
+    {
+      "id": 6,
+      "ad": "Plan karti + Kopyala dugmesi",
+      "durum": "bitti",
+      "model": "Sonnet 5.5"
+    },
+    {
+      "id": 7,
+      "ad": "README (TR+EN), Dockerfile, uctan uca kurulum denemesi",
+      "durum": "bitti",
+      "model": "Sonnet 5.5"
+    },
+    {
+      "id": 8,
+      "ad": "Toplu ice aktarma (IG/TikTok verilerimi indir JSON)",
+      "durum": "bekliyor",
+      "model": "Sonnet 5.5"
+    },
+    {
+      "id": 9,
+      "ad": "v2: ffmpeg ile video birlestirme",
+      "durum": "ertelendi",
+      "model": "Sonnet 5.5"
+    }
   ]
 }

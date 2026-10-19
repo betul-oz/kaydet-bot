@@ -13,6 +13,10 @@ class Config:
     auto_download: bool = False
     downloads_dir: str = "downloads"
     db_path: str = "kaydet.db"
+    cookies_file: str = ""  # Instagram vb. giriş isteyen videolar için (cookies.txt)
+    web_host: str = "127.0.0.1"
+    web_port: int = 8000
+    allowed_hosts: list[str] = field(default_factory=list)  # web_host=0.0.0.0 iken erişilecek adlar
 
 
 def fold(text: str) -> str:
@@ -142,6 +146,16 @@ def _as_int_list(value, field_name: str) -> list[int]:
         raise ValueError(f"config.yaml: '{field_name}' sayı listesi olmalı, bulunan: {value!r}")
 
 
+def _as_port(value) -> int:
+    try:
+        port = int(value)
+    except (TypeError, ValueError):
+        port = 0
+    if not 1 <= port <= 65535:
+        raise ValueError(f"config.yaml: 'web_port' 1-65535 arası olmalı, bulunan: {value!r}")
+    return port
+
+
 def load_config(path: str | Path) -> Config:
     p = Path(path)
     if not p.exists():
@@ -152,4 +166,8 @@ def load_config(path: str | Path) -> Config:
         auto_download=_as_bool(data.get("auto_download", False), "auto_download"),
         downloads_dir=str(data.get("downloads_dir", "downloads")),
         db_path=str(data.get("db_path", "kaydet.db")),
+        cookies_file=str(data.get("cookies_file") or ""),
+        web_host=str(data.get("web_host", "127.0.0.1")),
+        web_port=_as_port(data.get("web_port", 8000)),
+        allowed_hosts=_as_list(data.get("allowed_hosts")),
     )

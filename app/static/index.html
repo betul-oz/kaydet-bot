@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kaydet</title>
+<style>
+:root{
+  --bg:#f6f5f2; --panel:#ffffff; --ink:#1d1d1b; --muted:#6b6a66; --line:#e3e1db;
+  --accent:#d9480f; --accent-ink:#ffffff; --col:#efede8; --ok:#2b8a3e; --err:#c92a2a; --warn:#b36b00;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#161614; --panel:#202020; --ink:#ecebe6; --muted:#9b9a94; --line:#33322f;
+        --accent:#ff7a3d; --accent-ink:#161614; --col:#1b1b19; --ok:#69db7c; --err:#ff8787; --warn:#ffc078;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);
+  display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 20px}
+header h1{font-size:18px;margin:0 8px 0 0}
+.tabs button{background:none;border:0;padding:6px 12px;border-radius:8px;color:var(--muted);font:inherit;cursor:pointer}
+.tabs button.on{background:var(--panel);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+input,textarea,select,button{font:inherit;color:inherit}
+input[type=search],select,.field{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.spacer{flex:1}
+main{padding:20px;max-width:1500px;margin:0 auto}
+.cat{margin-bottom:28px}
+.cat h2{font-size:16px;margin:0 0 10px;text-transform:capitalize}
+.cols{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;align-items:flex-start}
+.col{background:var(--col);border:1px solid var(--line);border-radius:12px;min-width:270px;width:290px;flex:0 0 auto;padding:10px}
+.col.over{outline:2px dashed var(--accent)}
+.col h3{font-size:13px;margin:0 0 8px;display:flex;align-items:center;gap:6px;color:var(--muted);font-weight:600}
+.col h3 .n{background:var(--panel);border-radius:10px;padding:0 7px;font-weight:500}
+.col h3 button{margin-left:auto}
+.empty{color:var(--muted);font-size:13px;padding:10px 4px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px;cursor:grab}
+.card.drag{opacity:.4}
+.card img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;display:block;margin-bottom:6px;background:var(--col)}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.badge{font-size:11px;border-radius:6px;padding:1px 6px;background:var(--col);color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.st-bekliyor,.st-iniyor{color:var(--warn)} .st-indirildi{color:var(--ok)} .st-hata{color:var(--err)}
+.title{display:block;margin:4px 0;color:var(--ink);text-decoration:none;word-break:break-word;font-weight:550}
+.title:hover{text-decoration:underline}
+textarea.note{width:100%;min-height:34px;resize:vertical;border:1px solid var(--line);border-radius:6px;background:transparent;padding:5px 7px;font-size:13px}
+.act{margin-top:6px}
+button.b{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:3px 9px;cursor:pointer;font-size:13px}
+button.b:hover{border-color:var(--accent)}
+button.p{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.d:hover{border-color:var(--err);color:var(--err)}
+.small{font-size:12px;color:var(--muted);word-break:break-all}
+.err{font-size:12px;color:var(--err)}
+.plan{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px}
+.plan .head{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.plan .head input{flex:1;font-weight:600;font-size:16px}
+.vid{display:flex;gap:8px;align-items:flex-start;border-top:1px solid var(--line);padding:8px 0}
+.vid .num{width:22px;color:var(--muted)}
+.vid .body{flex:1;min-width:0}
+.vid input.field{width:100%;margin-top:4px;font-size:13px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+  padding:8px 16px;border-radius:20px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+@media (max-width:640px){ main{padding:12px} .col{min-width:85vw} }
+</style>
+</head>
+<body>
+<header>
+  <h1>Kaydet</h1>
+  <div class="tabs">
+    <button id="tab-items" class="on">Kayıtlar</button>
+    <button id="tab-cards">Plan kartları</button>
+  </div>
+  <input type="search" id="q" placeholder="Ara…" aria-label="Ara">
+  <select id="plat" aria-label="Platform">
+    <option value="">Tüm platformlar</option><option>instagram</option><option>tiktok</option><option>youtube</option>
+  </select>
+  <span class="spacer"></span>
+  <span class="small" id="count"></span>
+</header>
+<main id="main"></main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const S = {cats: [], items: [], cards: [], tab: 'items', q: '', plat: '', dl: false, saving: Promise.resolve(), sig: ''};
+// Kayıtlar sırayla yazılır; load() ve Kopyala bekleyen kayıtların bitmesini bekler (eski metin görünmesin/kopyalanmasın)
+function track(fn) { const p = S.saving.then(fn).catch(() => {}); S.saving = p; return p; }
+const run = (m, u, b) => track(() => api(m, u, b));
+const $ = (s) => document.querySelector(s);
+const esc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeUrl = (u) => /^https?:\/\//i.test(u || '') ? u : '#';
+
+async function api(method, url, body) {
+  const r = await fetch(url, {method, headers: body ? {'Content-Type': 'application/json'} : {},
+                              body: body ? JSON.stringify(body) : undefined});
+  if (!r.ok) {
+    let m = r.statusText; try { m = (await r.json()).detail || m; } catch (e) {}
+    toast(m); throw new Error(m);
+  }
+  return (r.headers.get('content-type') || '').includes('json') ? r.json() : r.text();
+}
+let toastT;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2200); }
+
+async function load() {
+  await S.saving;
+  const [st, cards] = await Promise.all([api('GET', '/api/state'), api('GET', '/api/cards')]);
+  const sig = JSON.stringify([st, cards]);
+  if (sig === S.sig) return;  // değişmediyse yeniden çizme (kaydırma/odak bozulmasın)
+  S.sig = sig;
+  S.cats = st.categories; S.items = st.items; S.dl = st.downloads_enabled; S.cards = cards; render();
+}
+
+function visible(it) {
+  if (S.plat && it.platform !== S.plat) return false;
+  if (!S.q) return true;
+  const q = S.q.toLowerCase();
+  return [it.title, it.note, it.url, it.category, it.subcategory].some(v => (v || '').toLowerCase().includes(q));
+}
+
+function itemCard(it) {
+  const thumb = /^https?:/i.test(it.thumb_url) ?
+    `<img src="${esc(it.thumb_url)}" loading="lazy" referrerpolicy="no-referrer" alt="" onerror="this.remove()">` : '';
+  const dl = S.dl && it.status !== 'indirildi' && it.status !== 'bekliyor' && it.status !== 'iniyor'
+    ? `<button class="b" data-act="dl" data-id="${it.id}">${it.status === 'hata' ? 'Tekrar dene' : 'İndir'}</button>` : '';
+  return `<article class="card" draggable="true" data-id="${it.id}">
+    ${thumb}
+    <div class="row"><span class="badge">${esc(it.platform)}</span>
+      <span class="small st-${esc(it.status)}">${it.status === 'kayitli' ? '' : esc(it.status)}</span></div>
+    <a class="title" href="${esc(safeUrl(it.url))}" target="_blank" rel="noopener noreferrer">${esc(it.title || it.url)}</a>
+    <textarea class="note" data-id="${it.id}" placeholder="Not ekle…" rows="1">${esc(it.note)}</textarea>
+    <div class="row act">${dl}
+      <select data-act="addcard" data-id="${it.id}" aria-label="Plan kartına ekle">
+        <option value="">Karta ekle…</option>
+        ${S.cards.map(c => `<option value="${c.id}">${esc(c.title)}</option>`).join('')}
+      </select>
+      <button class="b d" data-act="del" data-id="${it.id}">Sil</button></div>
+    ${it.file_path ? `<div class="small">Dosya: ${esc(it.file_path)} <button class="b" data-act="cpath" data-id="${it.id}">Yolu kopyala</button></div>` : ''}
+    ${it.error ? `<div class="err">${esc(it.error)}</div>` : ''}
+  </article>`;
+}
+
+function renderItems() {
+  const items = S.items.filter(visible);
+  const known = new Set(S.cats.flatMap(c => c.subs.map(s => c.name + '\u0000' + s)));
+  const groups = S.cats.map(c => ({name: c.name, subs: c.subs.slice()}));
+  const other = items.filter(i => !known.has(i.category + '\u0000' + i.subcategory));
+  const html = groups.map(g => `<section class="cat"><h2>${esc(g.name)}</h2><div class="cols">
+    ${g.subs.map(s => {
+      const list = items.filter(i => i.category === g.name && i.subcategory === s);
+      return `<div class="col" data-cat="${esc(g.name)}" data-sub="${esc(s)}">
+        <h3>${esc(s)} <span class="n">${list.length}</span>
+          ${S.dl && list.length ? `<button class="b" data-act="dlsub" data-cat="${esc(g.name)}" data-sub="${esc(s)}">Hepsini indir</button>` : ''}</h3>
+        ${list.map(itemCard).join('') || '<div class="empty">Boş. Kartı buraya sürükle.</div>'}</div>`;
+    }).join('')}</div></section>`).join('');
+  const otherHtml = other.length ? `<section class="cat"><h2>Diğer (kategorisi silinmiş)</h2>
+    <div class="cols"><div class="col" data-cat="" data-sub="">${other.map(itemCard).join('')}</div></div></section>` : '';
+  $('#main').innerHTML = (html + otherHtml) || '<p class="empty">Henüz kayıt yok. Telegram botuna bir link gönder.</p>';
+  $('#count').textContent = `${items.length} kayıt`;
+}
+
+function renderCards() {
+  const opts = (c) => S.items.filter(i => !c.items.some(x => x.id === i.id))
+    .map(i => `<option value="${i.id}">[${esc(i.category)}/${esc(i.subcategory)}] ${esc((i.title || i.url).slice(0, 60))}</option>`).join('');
+  $('#main').innerHTML = `<div class="plan"><div class="head">
+      <input class="field" id="newtitle" placeholder="Yeni plan kartı başlığı…">
+      <button class="b p" data-act="newcard">Kart oluştur</button></div></div>` +
+    S.cards.map(c => `<div class="plan" data-card="${c.id}">
+      <div class="head"><input class="field" data-act="ctitle" value="${esc(c.title)}" aria-label="Başlık">
+        <button class="b p" data-act="copy">Kopyala</button>
+        <button class="b d" data-act="delcard">Kartı sil</button></div>
+      <textarea class="note" data-act="cnote" rows="3" placeholder="Kendi notların (metin, fikir, açıklama)…">${esc(c.note)}</textarea>
+      ${c.items.map((v, n) => `<div class="vid" data-item="${v.id}"><span class="num">${n + 1}.</span><div class="body">
+          <span class="badge">${esc(v.category)} / ${esc(v.subcategory)}</span>
+          <a class="title" href="${esc(safeUrl(v.url))}" target="_blank" rel="noopener noreferrer">${esc(v.title || v.url)}</a>
+          <input class="field" data-act="vnote" value="${esc(v.card_note)}" placeholder="Bu videoyla ilgili notum…"></div>
+          <button class="b" data-act="up" title="Yukarı">↑</button><button class="b" data-act="down" title="Aşağı">↓</button>
+          <button class="b d" data-act="rmvid" title="Karttan çıkar">✕</button></div>`).join('')}
+      <div class="row act"><select data-act="addvid"><option value="">Video ekle…</option>${opts(c)}</select></div>
+    </div>`).join('') || '';
+  $('#count').textContent = `${S.cards.length} kart`;
+}
+
+function render() { S.tab === 'items' ? renderItems() : renderCards(); }
+
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
+  const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
+  ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok;
+}
+
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'SELECT' || b.tagName === 'INPUT' || b.tagName === 'TEXTAREA') return;
+  const act = b.dataset.act, id = b.dataset.id;
+  const card = b.closest('[data-card]'), cid = card && card.dataset.card, vid = b.closest('[data-item]')?.dataset.item;
+  if (act === 'copy') {
+    await S.saving;  // yazılan son not kaydedilmeden kopyalama
+    try { const t = await api('GET', `/api/cards/${cid}/copy`);
+      toast(await copyText(t) ? 'Kopyalandı: Claude’a yapıştırabilirsin' : 'Kopyalanamadı'); } catch (err) {}
+    return;
+  }
+  if (act === 'cpath') { const it = S.items.find(i => i.id === +id); toast(it && await copyText(it.file_path) ? 'Yol kopyalandı' : 'Kopyalanamadı'); return; }
+  if (act === 'dl') { await run('POST', `/api/items/${id}/download`); toast('İndirme sıraya alındı'); }
+  else if (act === 'dlsub') { const r = await run('POST', '/api/download-sub', {category: b.dataset.cat, subcategory: b.dataset.sub}); if (r) toast(`${r.queued} video sıraya alındı`); }
+  else if (act === 'del') { if (!confirm('Bu kayıt silinsin mi?')) return; await run('DELETE', `/api/items/${id}`); }
+  else if (act === 'newcard') { const t = $('#newtitle').value.trim(); if (!t) return toast('Başlık yaz'); await run('POST', '/api/cards', {title: t}); }
+  else if (act === 'delcard') { if (!confirm('Kart silinsin mi? (Videolar silinmez)')) return; await run('DELETE', `/api/cards/${cid}`); }
+  else if (act === 'up' || act === 'down') await run('PATCH', `/api/cards/${cid}/items/${vid}`, {move: act === 'up' ? -1 : 1});
+  else if (act === 'rmvid') await run('DELETE', `/api/cards/${cid}/items/${vid}`);
+  else return;
+  await load();
+});
+
+document.addEventListener('change', async (e) => {
+  const t = e.target, act = t.dataset.act; if (!act) return;
+  const cid = t.closest('[data-card]')?.dataset.card, vid = t.closest('[data-item]')?.dataset.item;
+  // Not/başlık düzenlemelerinde ekran yeniden ÇİZİLMEZ (yazmakta olduğun alan bozulmasın); sadece kaydedilir
+  const saveInPlace = async (body, path) => {
+    const r = await run('PATCH', path, body);
+    const i = S.cards.findIndex(c => c.id === +cid);
+    if (r && i >= 0) S.cards[i] = r;
+  };
+  if (act === 'addcard' && t.value) { await run('POST', `/api/cards/${t.value}/items`, {item_id: +t.dataset.id}); toast('Karta eklendi'); }
+  else if (act === 'addvid' && t.value) await run('POST', `/api/cards/${cid}/items`, {item_id: +t.value});
+  else if (act === 'ctitle') {
+    if (!t.value.trim()) { t.value = S.cards.find(c => c.id === +cid)?.title || ''; return; }
+    return saveInPlace({title: t.value}, `/api/cards/${cid}`);
+  }
+  else if (act === 'cnote') return saveInPlace({note: t.value}, `/api/cards/${cid}`);
+  else if (act === 'vnote') return saveInPlace({note: t.value}, `/api/cards/${cid}/items/${vid}`);
+  else return;
+  await load();
+});
+
+document.addEventListener('focusout', (e) => {
+  const t = e.target; if (!t.classList.contains('note') || !t.dataset.id) return;
+  const it = S.items.find(i => i.id === +t.dataset.id), val = t.value;
+  if (it && it.note !== val) track(async () => { const r = await api('PATCH', `/api/items/${t.dataset.id}`, {note: val}); it.note = r.note; });
+});
+
+// Metin alanında fareyle seçim yaparken kart sürüklenmesin
+document.addEventListener('mousedown', (e) => { if (e.target.closest('textarea,input,select')) e.target.closest('.card')?.setAttribute('draggable', 'false'); });
+document.addEventListener('mouseup', () => document.querySelectorAll('.card[draggable=false]').forEach(c => c.setAttribute('draggable', 'true')));
+// Sürükle-bırak: kartı başka alt başlığa taşı
+let dragId = null;
+document.addEventListener('dragstart', (e) => { const c = e.target.closest?.('.card'); if (!c) return;
+  dragId = +c.dataset.id; c.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(dragId)); });
+document.addEventListener('dragend', () => { document.querySelectorAll('.drag,.over').forEach(n => n.classList.remove('drag', 'over')); dragId = null; });
+document.addEventListener('dragover', (e) => { const col = e.target.closest?.('.col'); if (col && dragId && col.dataset.cat) { e.preventDefault(); col.classList.add('over'); } });
+document.addEventListener('dragleave', (e) => e.target.closest?.('.col')?.classList.remove('over'));
+document.addEventListener('drop', async (e) => {
+  const col = e.target.closest?.('.col'); if (!col || !dragId || !col.dataset.cat) return;
+  e.preventDefault(); const id = dragId; dragId = null;
+  const it = S.items.find(i => i.id === id);
+  if (it && (it.category !== col.dataset.cat || it.subcategory !== col.dataset.sub)) {
+    try { await api('PATCH', `/api/items/${id}`, {category: col.dataset.cat, subcategory: col.dataset.sub}); } catch (err) {}
+  }
+  await load();
+});
+
+$('#tab-items').onclick = () => setTab('items');
+$('#tab-cards').onclick = () => setTab('cards');
+function setTab(t) { S.tab = t; $('#tab-items').classList.toggle('on', t === 'items'); $('#tab-cards').classList.toggle('on', t === 'cards');
+  $('#q').style.display = $('#plat').style.display = t === 'items' ? '' : 'none'; render(); }
+$('#q').oninput = (e) => { S.q = e.target.value; if (S.tab === 'items') renderItems(); };
+$('#plat').onchange = (e) => { S.plat = e.target.value; if (S.tab === 'items') renderItems(); };
+
+// Her 4 sn'de değişiklikleri çek (bottan gelen kayıtlar, indirme durumu); yazarken/sürüklerken dokunma
+setInterval(() => {
+  const typing = ['TEXTAREA', 'INPUT', 'SELECT'].includes(document.activeElement?.tagName);
+  if (!typing && dragId === null && !document.hidden) load().catch(() => {});
+}, 4000);
+
+load().catch(() => { $('#main').innerHTML = '<p class="empty">Sunucuya ulaşılamadı.</p>'; });
+</script>
+</body>
+</html>

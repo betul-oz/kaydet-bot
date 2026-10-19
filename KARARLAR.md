@@ -16,3 +16,8 @@
 | 12 | 2026-10-19 | Kısa yol/kategori eşleşmesi Türkçe İ/I/ı farkını yok sayar; '_' ve '-' boşluk sayılır (örn. `el_isi/hook`) | Türk klavyesi, boşluklu kategori adları |
 | 13 | 2026-10-19 | Kullanıcıbilgisi içeren adresler (`tiktok.com@127.0.0.1`) desteklenmeyen sayılır; TikTok kısa linki çözülünce dönen adres de TikTok değilse kısa link olduğu gibi kaydedilir | Denetçi: yt-dlp'ye sahte adresle keyfi sunucu isteği (SSRF) gidebiliyordu |
 | 14 | 2026-10-19 | Başlık/thumbnail kayıttan sonra arka planda doldurulur (kayıt hızlı, yt-dlp başarısız olsa da kayıt kalır) | Instagram giriş isteyebilir; kullanıcıyı bekletme |
+| 15 | 2026-10-19 | Web arayüzü yalnızca 127.0.0.1'de; Host (DNS rebinding) ve Origin/Sec-Fetch-Site (CSRF) kontrolü; başka cihaz için `web_host` + `allowed_hosts` | Kimlik doğrulama yok, yerel araç |
+| 16 | 2026-10-19 | İndirme: ffmpeg varsa `bv*+ba` birleştirip mp4 (en çok 1080p), yoksa tek dosyalı mp4; Instagram için isteğe bağlı `cookies_file`. Durum geçişi tek SQL ile atomik | YouTube görüntü+ses ayrı verir (gerçek denemede bulundu) |
+| 17 | 2026-10-19 | Web arayüzünde not/başlık düzenlemesi ekranı yeniden çizmez, kayıtlar sıraya konur, Kopyala ve load() bekleyen kayıtları bekler | Denetçi: eski metin kopyalanabiliyordu (tarayıcıda doğrulandı) |
+| 18 | 2026-10-19 | "Aç" düğmesi yok, yerine "Yolu kopyala" | Tarayıcı http sayfasından file:// açamaz |
+| 19 | 2026-10-19 | Web ve bot tek komutla (`python -m app`); token/ID yoksa yalnızca web açılır | Token olmadan da kullanılabilsin |
