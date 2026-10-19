@@ -27,3 +27,4 @@
 | 23 | 2026-10-19 | Telegram butonları gösterildiği andaki kategori adlarını saklar ve kaydetmeden önce adı yeniden doğrular; kategori değişmişse "linki tekrar gönder" der | Sıra/ad değişince video yanlış yere kaydoluyordu |
 | 24 | 2026-10-19 | Açılışta `reconcile()` harf farklı eski kayıtları düzeltir; tanınmayan kategorili videolar arayüzde "Kategorisiz" sayfasında görünür | Videolar kaybolmasın |
 | 25 | 2026-10-19 | Kategori adı: en çok 40 karakter, `/ | \ < >` ve görünmez/yön değiştiren karakterler yasak | XSS, yanıltıcı adlar |
+| 26 | 2026-10-19 | Alt başlık sütunları yatay kaydırma yerine sarılan ızgara (grid); "+ Alt başlık" düğmesi sayfa başlığında | Kullanıcı: alttaki yatay kaydırma çubuğu sinir bozucu; uzun sütunda düğme çok aşağıda kalıyordu |
