@@ -21,3 +21,9 @@
 - **Doğrulanmadı:** Gerçek Telegram bağlantısı. Kullanıcı `.env` içine token, `config.yaml` içine `allowed_user_ids` yazmadı/yazamadı (proje klasöründe boş şablonlar var). Token'ı ben girmem.
 - Bilinen sınırlar: Instagram çoğu zaman giriş ister (başlık/indirme için `cookies_file` gerekir); bekleyen bot buton seçimleri bellekte; TikTok kısa linkte bot ~30 sn bekleyebilir.
 - Sıradaki: kullanıcı token+ID'yi yazınca `python -m app` ile bot denemesi → sonra **İş 8 (toplu içe aktarma)**; v2: ffmpeg birleştirme.
+
+## 2026-10-19 — Oturum 3 (son): gerçek Telegram doğrulaması, İş 3 BİTTİ
+- Doğrulandı: gerçek bot (token `.env`'de, ID `config.yaml`'da) çalışıyor. Kullanıcı telefondan Instagram linki attı, butonlarla diy/hook seçti → `kaydet.db`'ye düştü, yt-dlp başlığı otomatik çekti, web API ve sayfada görünüyor.
+- `baslat.bat` eklendi (çift tıkla başlat).
+- Not: DB'deki `created_at` UTC (yerel saatten 3 saat geri). Arayüzde yerel saate çevrilebilir (küçük iş).
+- Sıradaki: kullanıcı gerçek kullanımda bulduklarını söyler; **İş 8 (toplu içe aktarma)**; v2: ffmpeg birleştirme. Token sohbette paylaşıldı: kullanıcıya BotFather'da `/revoke` önerildi.
