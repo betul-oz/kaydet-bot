@@ -37,7 +37,9 @@ cp categories.example.yaml categories.yaml # kendi kategorilerini yaz
 python -m app
 ```
 
-Web sayfası `http://127.0.0.1:8000` adresinde açılır. Token veya ID boşsa bot kapalı kalır, sadece web sayfası çalışır.
+Web sayfası `http://127.0.0.1:8000` adresinde açılır.
+
+**Windows'ta kolay açılış:** `baslat.bat` dosyasına çift tıkla (bot + web başlar, tarayıcı kendiliğinden açılır). Masaüstüne kısayolunu koymak için dosyaya sağ tık → Gönder → Masaüstü (kısayol oluştur). Token veya ID boşsa bot kapalı kalır, sadece web sayfası çalışır.
 
 ### Docker ile
 ```bash
