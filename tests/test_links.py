@@ -89,3 +89,10 @@ def test_kisa_yol_noktalama_bosluk_buyuk_harf():
         assert (p.category, p.subcategory) == ("diy", "hook"), msg
     p = parse_message("https://youtu.be/xyzxyz el_işi/tarif", cats)
     assert (p.category, p.subcategory) == ("el işi", "tarif")
+
+
+def test_kullanici_bilgili_sahte_adres_reddedilir():
+    for u in ["https://tiktok.com:443@127.0.0.1:8080/admin", "https://instagram.com:1@evil.example/x",
+              "https://youtube.com@evil.example/watch?v=abcdef123"]:
+        assert detect_platform(u) is None, u
+        assert parse_message(u, CATS) is None, u

@@ -63,6 +63,21 @@ def get_item(conn: sqlite3.Connection, item_id: int) -> sqlite3.Row | None:
     return conn.execute("SELECT * FROM items WHERE id = ?", (item_id,)).fetchone()
 
 
+def get_item_by_url(conn: sqlite3.Connection, url: str) -> sqlite3.Row | None:
+    return conn.execute("SELECT * FROM items WHERE url = ?", (url,)).fetchone()
+
+
+def set_meta(conn: sqlite3.Connection, item_id: int, *, title: str = "",
+             thumb_url: str = "") -> bool:
+    """Boş gelen alan mevcut değeri ezmez."""
+    cur = conn.execute(
+        "UPDATE items SET title = COALESCE(NULLIF(?, ''), title), "
+        "thumb_url = COALESCE(NULLIF(?, ''), thumb_url) WHERE id = ?",
+        (title, thumb_url, item_id))
+    conn.commit()
+    return cur.rowcount > 0
+
+
 def list_items(conn: sqlite3.Connection, *, category: str | None = None,
                subcategory: str | None = None, platform: str | None = None,
                search: str | None = None) -> list[sqlite3.Row]:

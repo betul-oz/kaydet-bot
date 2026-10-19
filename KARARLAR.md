@@ -14,3 +14,5 @@
 | 10 | 2026-10-19 | TikTok kısa linkleri (vm.tiktok.com, tiktok.com/t/) iş 3'te yt-dlp ile açılıp gerçek id ile tekrar kontrol edilecek | Yönlendirme çözülmeden normalleştirilemez |
 | 11 | 2026-10-19 | SQLite bağlantısı `check_same_thread=False`; bot, web ve indirme kuyruğu aynı bağlantıyı paylaşabilir. Yazmalar kısa, her biri commit eder | Çoklu thread ihtiyacı |
 | 12 | 2026-10-19 | Kısa yol/kategori eşleşmesi Türkçe İ/I/ı farkını yok sayar; '_' ve '-' boşluk sayılır (örn. `el_isi/hook`) | Türk klavyesi, boşluklu kategori adları |
+| 13 | 2026-10-19 | Kullanıcıbilgisi içeren adresler (`tiktok.com@127.0.0.1`) desteklenmeyen sayılır; TikTok kısa linki çözülünce dönen adres de TikTok değilse kısa link olduğu gibi kaydedilir | Denetçi: yt-dlp'ye sahte adresle keyfi sunucu isteği (SSRF) gidebiliyordu |
+| 14 | 2026-10-19 | Başlık/thumbnail kayıttan sonra arka planda doldurulur (kayıt hızlı, yt-dlp başarısız olsa da kayıt kalır) | Instagram giriş isteyebilir; kullanıcıyı bekletme |

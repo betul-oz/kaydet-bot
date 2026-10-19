@@ -29,13 +29,16 @@ def extract_urls(text: str) -> list[str]:
 
 
 def _host(url: str) -> str:
-    host = urlparse(url).netloc.lower().split(":")[0]
+    host = (urlparse(url).hostname or "").lower()
     parts = host.split(".")
     # www., m., vm. gibi alt alan adlarını at: m.youtube.com -> youtube.com
     return ".".join(parts[-2:]) if len(parts) > 2 else host
 
 
 def detect_platform(url: str) -> str | None:
+    # 'tiktok.com@127.0.0.1' gibi kullanıcıbilgisi içeren adresler gerçekte başka sunucuya gider
+    if "@" in urlparse(url).netloc:
+        return None
     return PLATFORMS.get(_host(url))
 
 
@@ -69,7 +72,7 @@ def normalize_url(url: str) -> str:
     # Tanınmayan biçim (kısa link, kanal vb.): Instagram/TikTok'ta sorgu hiçbir şeyi belirlemez.
     # Kısa linklerde (vm.tiktok.com) alt alan adı yönlendirme için gerekli, o yüzden korunur.
     if platform in ("instagram", "tiktok"):
-        full = p.netloc.lower().removeprefix("www.")
+        full = (p.hostname or "").removeprefix("www.")
         return f"https://{full}{path}"
     query = f"?{p.query}" if p.query else ""
     return f"https://{host}{path}{query}"
