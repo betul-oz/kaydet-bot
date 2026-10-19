@@ -6,181 +6,441 @@
 <title>Kaydet</title>
 <style>
 :root{
-  --bg:#f6f5f2; --panel:#ffffff; --ink:#1d1d1b; --muted:#6b6a66; --line:#e3e1db;
-  --accent:#d9480f; --accent-ink:#ffffff; --col:#efede8; --ok:#2b8a3e; --err:#c92a2a; --warn:#b36b00;
+  --bg:#F3F2F6; --surface:#FFFFFF; --lane:#E9E7F0; --ink:#17151F; --muted:#5F5C6E; --line:#DAD7E4;
+  --accent:#3A33D1; --accent-ink:#FFFFFF; --accent-soft:#E7E5FB;
+  --danger:#B4182F; --ok:#1B6E46; --warn:#8F5400;
+  --head:"Bahnschrift","Segoe UI Variable Display","SF Pro Display",system-ui,sans-serif;
+  --body:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
+  --r:12px; --rail:248px;
 }
 @media (prefers-color-scheme: dark){
-  :root{--bg:#161614; --panel:#202020; --ink:#ecebe6; --muted:#9b9a94; --line:#33322f;
-        --accent:#ff7a3d; --accent-ink:#161614; --col:#1b1b19; --ok:#69db7c; --err:#ff8787; --warn:#ffc078;}
+  :root{--bg:#121118; --surface:#1C1B25; --lane:#17161E; --ink:#F1EFF7; --muted:#A9A6BA; --line:#2E2C3B;
+        --accent:#9A94FF; --accent-ink:#14121F; --accent-soft:#25234A;
+        --danger:#FF8497; --ok:#6FD9A0; --warn:#FFC266;}
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
-header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);
-  display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 20px}
-header h1{font-size:18px;margin:0 8px 0 0}
-.tabs button{background:none;border:0;padding:6px 12px;border-radius:8px;color:var(--muted);font:inherit;cursor:pointer}
-.tabs button.on{background:var(--panel);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
-input,textarea,select,button{font:inherit;color:inherit}
-input[type=search],select,.field{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
-.spacer{flex:1}
-main{padding:20px;max-width:1500px;margin:0 auto}
-.cat{margin-bottom:28px}
-.cat h2{font-size:16px;margin:0 0 10px;text-transform:capitalize}
-.cols{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;align-items:flex-start}
-.col{background:var(--col);border:1px solid var(--line);border-radius:12px;min-width:270px;width:290px;flex:0 0 auto;padding:10px}
-.col.over{outline:2px dashed var(--accent)}
-.col h3{font-size:13px;margin:0 0 8px;display:flex;align-items:center;gap:6px;color:var(--muted);font-weight:600}
-.col h3 .n{background:var(--panel);border-radius:10px;padding:0 7px;font-weight:500}
-.col h3 button{margin-left:auto}
-.empty{color:var(--muted);font-size:13px;padding:10px 4px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px;cursor:grab}
+html{scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--head);margin:0;font-weight:600;letter-spacing:-.01em}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---- Düzen ---- */
+.app{display:grid;grid-template-columns:var(--rail) 1fr;min-height:100vh}
+.rail{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:20px 14px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.brand{font:600 22px var(--head);padding:0 10px 14px}
+.rail nav{display:flex;flex-direction:column;gap:2px}
+.navlink{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;color:var(--ink);text-decoration:none;min-height:40px}
+.navlink:hover{background:var(--accent-soft)}
+.navlink[aria-current=page]{background:var(--surface);box-shadow:0 0 0 1px var(--line);font-weight:600}
+.navlink .dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+.navlink .n{margin-left:auto;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.rail .sep{height:1px;background:var(--line);margin:10px 4px}
+.rail .grow{flex:1}
+.main{min-width:0}
+.topbar{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;padding:12px 24px;flex-wrap:wrap}
+.field{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:40px}
+.field::placeholder{color:var(--muted)}
+.topbar input[type=search]{flex:1;min-width:180px;max-width:420px}
+.view{padding:24px}
+
+/* ---- Düğmeler ---- */
+.btn{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:7px 12px;min-height:38px;cursor:pointer;text-decoration:none;color:var(--ink)}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.danger{color:var(--danger)} .btn.danger:hover{border-color:var(--danger)}
+.btn.sm{min-height:32px;padding:3px 10px;font-size:13px;border-radius:8px}
+.btn.ghost{background:none;border-color:transparent;color:var(--muted)} .btn.ghost:hover{color:var(--ink);border-color:var(--line)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+
+/* ---- Menü (details) ---- */
+details.menu{position:relative}
+details.menu>summary{list-style:none;cursor:pointer;width:34px;height:34px;display:grid;place-items:center;border-radius:8px;color:var(--muted)}
+details.menu>summary::-webkit-details-marker{display:none}
+details.menu>summary:hover,details.menu[open]>summary{background:var(--accent-soft);color:var(--ink)}
+.pop{position:absolute;right:0;top:38px;z-index:20;min-width:210px;background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:6px;box-shadow:0 12px 32px rgba(20,16,40,.18);display:flex;flex-direction:column;gap:2px}
+.pop button,.pop select{width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:8px 10px;cursor:pointer;min-height:38px}
+.pop button:hover,.pop select:hover{background:var(--accent-soft)}
+.pop button.danger{color:var(--danger)}
+.pop select{background:var(--surface);color:var(--ink)}
+.pop .lbl{font-size:12px;color:var(--muted);padding:6px 10px 0}
+
+/* ---- Kategori sayfası ---- */
+.pagehead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.pagehead h1{font-size:34px;line-height:1.1}
+.pagehead .dot{width:14px;height:14px;border-radius:50%}
+.pagehead .meta{color:var(--muted)}
+.hint{color:var(--muted);font-size:14px;margin:2px 0 22px}
+.hint code{background:var(--accent-soft);padding:1px 6px;border-radius:6px;font-size:13px}
+.lanes{display:flex;gap:14px;align-items:flex-start;overflow-x:auto;padding-bottom:16px;scroll-snap-type:x proximity}
+.lane{flex:0 0 330px;background:var(--lane);border:1px solid var(--line);border-radius:16px;padding:10px;scroll-snap-align:start;min-height:140px}
+.lane.over{outline:2px dashed var(--accent);outline-offset:-2px}
+.lanehead{display:flex;align-items:center;gap:8px;padding:2px 2px 10px 6px}
+.lanehead h3{font-size:16px;flex:1;min-width:0;overflow-wrap:anywhere}
+.lanehead .n{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.lane.add{background:none;border:2px dashed var(--line);display:grid;place-items:center;min-height:90px;color:var(--muted);cursor:pointer;font:inherit;text-align:center}
+.lane.add:hover{border-color:var(--accent);color:var(--ink)}
+.empty{color:var(--muted);font-size:14px;padding:14px 8px;text-align:center}
+
+/* ---- Video kartı: dikey küçük resim solda ---- */
+.card{display:grid;grid-template-columns:64px 1fr auto;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px;margin-bottom:8px}
 .card.drag{opacity:.4}
-.card img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;display:block;margin-bottom:6px;background:var(--col)}
-.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.badge{font-size:11px;border-radius:6px;padding:1px 6px;background:var(--col);color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
-.st-bekliyor,.st-iniyor{color:var(--warn)} .st-indirildi{color:var(--ok)} .st-hata{color:var(--err)}
-.title{display:block;margin:4px 0;color:var(--ink);text-decoration:none;word-break:break-word;font-weight:550}
-.title:hover{text-decoration:underline}
-textarea.note{width:100%;min-height:34px;resize:vertical;border:1px solid var(--line);border-radius:6px;background:transparent;padding:5px 7px;font-size:13px}
-.act{margin-top:6px}
-button.b{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:3px 9px;cursor:pointer;font-size:13px}
-button.b:hover{border-color:var(--accent)}
-button.p{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-button.d:hover{border-color:var(--err);color:var(--err)}
-.small{font-size:12px;color:var(--muted);word-break:break-all}
-.err{font-size:12px;color:var(--err)}
-.plan{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px}
-.plan .head{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-.plan .head input{flex:1;font-weight:600;font-size:16px}
-.vid{display:flex;gap:8px;align-items:flex-start;border-top:1px solid var(--line);padding:8px 0}
-.vid .num{width:22px;color:var(--muted)}
+.thumb{width:64px;height:96px;border-radius:8px;overflow:hidden;background:var(--accent-soft);display:grid;place-items:center;color:var(--muted);font:600 12px var(--head);text-decoration:none}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.cbody{min-width:0;display:flex;flex-direction:column;gap:4px}
+.ctitle{color:var(--ink);text-decoration:none;font-weight:600;line-height:1.3;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ctitle:hover{text-decoration:underline}
+.cmeta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.chip{border:1px solid var(--line);border-radius:999px;padding:0 8px}
+.st-bekliyor,.st-iniyor{color:var(--warn)} .st-indirildi{color:var(--ok)} .st-hata{color:var(--danger)}
+textarea.note{width:100%;border:1px solid transparent;border-radius:8px;background:var(--bg);padding:5px 8px;font-size:13px;resize:vertical;min-height:32px}
+textarea.note:hover{border-color:var(--line)}
+.err{font-size:12px;color:var(--danger)}
+.path{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+
+/* ---- Arama sonuçları ve plan kartları ---- */
+.results{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:0 14px}
+.where{font-size:12px;color:var(--accent);font-weight:600}
+.plans{max-width:780px}
+.plan{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px}
+.plan .head{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.plan .head input{flex:1;font:600 18px var(--head)}
+.plan textarea{width:100%;min-height:76px;resize:vertical}
+.vid{display:flex;gap:10px;align-items:flex-start;border-top:1px solid var(--line);padding:10px 0}
+.vid .num{width:22px;color:var(--muted);padding-top:2px;font-variant-numeric:tabular-nums}
 .vid .body{flex:1;min-width:0}
-.vid input.field{width:100%;margin-top:4px;font-size:13px}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);
-  padding:8px 16px;border-radius:20px;opacity:0;transition:opacity .2s;pointer-events:none}
-.toast.on{opacity:1}
-@media (max-width:640px){ main{padding:12px} .col{min-width:85vw} }
+.vid input{width:100%;margin-top:6px;font-size:14px}
+.newplan{display:flex;gap:8px;margin-bottom:20px}.newplan input{flex:1}
+
+/* ---- Diyalog ve bildirim ---- */
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);padding:22px;width:min(440px,92vw)}
+dialog::backdrop{background:rgba(10,8,20,.45)}
+dialog h2{font-size:20px;margin-bottom:6px}
+dialog p{margin:6px 0 14px;color:var(--muted)}
+dialog label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
+dialog .field{width:100%}
+dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--ink);color:var(--bg);
+  padding:10px 18px;border-radius:12px;opacity:0;transition:opacity .18s,transform .18s;pointer-events:none;max-width:90vw;z-index:50}
+.toast.on{opacity:1;transform:translateX(-50%)}
+
+/* ---- Mobil: ray üstte yatay ---- */
+@media (max-width:860px){
+  .app{display:block}
+  .rail{position:sticky;top:0;z-index:6;height:auto;flex-direction:row;align-items:center;gap:6px;padding:8px 10px;border-right:0;
+    border-bottom:1px solid var(--line);background:var(--bg);overflow-x:auto}
+  .brand{display:none} .rail nav{flex-direction:row;gap:4px} .rail .sep,.rail .grow{display:none}
+  .navlink{white-space:nowrap;padding:8px 12px;background:var(--surface);border:1px solid var(--line)}
+  .topbar{top:57px;padding:10px 12px} .view{padding:14px 12px}
+  .pagehead h1{font-size:28px}
+  .lanes{flex-direction:column;overflow:visible} .lane{flex:1 1 auto;width:100%}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
-<header>
-  <h1>Kaydet</h1>
-  <div class="tabs">
-    <button id="tab-items" class="on">Kayıtlar</button>
-    <button id="tab-cards">Plan kartları</button>
+<div class="app">
+  <aside class="rail" aria-label="Kategoriler">
+    <div class="brand">Kaydet</div>
+    <nav id="catnav"></nav>
+    <button class="btn ghost sm" data-act="catadd">+ Yeni kategori</button>
+    <div class="sep"></div>
+    <nav><a class="navlink" id="plannav" href="#/planlar">Plan kartları <span class="n" id="plancount"></span></a>
+      <a class="navlink" id="orphannav" href="#/kategorisiz" hidden>Kategorisiz <span class="n" id="orphancount"></span></a></nav>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <label class="sr" for="q">Tüm kategorilerde ara</label>
+      <input class="field" type="search" id="q" placeholder="Tüm kategorilerde ara…">
+      <label class="sr" for="plat">Platform</label>
+      <select class="field" id="plat"><option value="">Tüm platformlar</option><option>instagram</option><option>tiktok</option><option>youtube</option></select>
+    </header>
+    <main class="view" id="view"></main>
   </div>
-  <input type="search" id="q" placeholder="Ara…" aria-label="Ara">
-  <select id="plat" aria-label="Platform">
-    <option value="">Tüm platformlar</option><option>instagram</option><option>tiktok</option><option>youtube</option>
-  </select>
-  <span class="spacer"></span>
-  <span class="small" id="count"></span>
-</header>
-<main id="main"></main>
-<div class="toast" id="toast" role="status"></div>
+</div>
+<dialog id="dlg"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const S = {cats: [], items: [], cards: [], tab: 'items', q: '', plat: '', dl: false, saving: Promise.resolve(), sig: ''};
-// Kayıtlar sırayla yazılır; load() ve Kopyala bekleyen kayıtların bitmesini bekler (eski metin görünmesin/kopyalanmasın)
-function track(fn) { const p = S.saving.then(fn).catch(() => {}); S.saving = p; return p; }
-const run = (m, u, b) => track(() => api(m, u, b));
+const HUES = ['#E5484D','#E5720B','#C79A00','#2E9E6B','#0D95A6','#3E63DD','#8E4EC6','#CF3F9A'];
+const S = {cats: [], items: [], cards: [], q: '', plat: '', dl: false, saving: Promise.resolve(), sig: '', lastError: ''};
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeUrl = (u) => /^https?:\/\//i.test(u || '') ? u : '#';
+// Türkçe İ/I/ı farkını ve harf boyutunu yok sayan karşılaştırma (sunucudaki fold() ile aynı kural)
+const fold = (t) => String(t ?? '').replace(/[İIı]/g, 'i').toLowerCase().replace(/[_-]/g, ' ').replace(/\s+/g, ' ').trim();
+const hue = (name) => HUES[Math.max(0, S.cats.findIndex(c => c.name === name)) % HUES.length];
+const orphans = () => S.items.filter(i => !S.cats.some(c => c.name === i.category && c.subs.includes(i.subcategory)));
+const count = (cat, sub) => S.items.filter(i => i.category === cat && (sub === undefined || i.subcategory === sub)).length;
+
+// Yazma işlemleri sırayla yapılır; load() ve Kopyala bekleyenlerin bitmesini bekler (eski metin görünmesin/kopyalanmasın)
+function track(fn) { const p = S.saving.then(fn).catch(() => {}); S.saving = p; return p; }
+const run = (m, u, b) => track(() => api(m, u, b));
 
 async function api(method, url, body) {
-  const r = await fetch(url, {method, headers: body ? {'Content-Type': 'application/json'} : {},
-                              body: body ? JSON.stringify(body) : undefined});
-  if (!r.ok) {
-    let m = r.statusText; try { m = (await r.json()).detail || m; } catch (e) {}
-    toast(m); throw new Error(m);
-  }
+  const r = await fetch(url, {method, headers: body ? {'Content-Type': 'application/json'} : {}, body: body ? JSON.stringify(body) : undefined});
+  if (!r.ok) { let m = r.statusText; try { m = (await r.json()).detail || m; } catch (e) {} S.lastError = m; toast(m); throw new Error(m); }
   return (r.headers.get('content-type') || '').includes('json') ? r.json() : r.text();
 }
 let toastT;
-function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on');
-  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2200); }
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
 
-async function load() {
+async function load(force) {
   await S.saving;
   const [st, cards] = await Promise.all([api('GET', '/api/state'), api('GET', '/api/cards')]);
   const sig = JSON.stringify([st, cards]);
-  if (sig === S.sig) return;  // değişmediyse yeniden çizme (kaydırma/odak bozulmasın)
-  S.sig = sig;
-  S.cats = st.categories; S.items = st.items; S.dl = st.downloads_enabled; S.cards = cards; render();
+  if (sig === S.sig && !force) return;
+  S.sig = sig; S.cats = st.categories; S.items = st.items; S.dl = st.downloads_enabled; S.cards = cards; render();
 }
 
-function visible(it) {
-  if (S.plat && it.platform !== S.plat) return false;
-  if (!S.q) return true;
-  const q = S.q.toLowerCase();
-  return [it.title, it.note, it.url, it.category, it.subcategory].some(v => (v || '').toLowerCase().includes(q));
+/* ---------- Yönlendirme: #/k/<kategori> | #/planlar ---------- */
+function route() {
+  let h = ''; try { h = decodeURIComponent(location.hash || ''); } catch (e) {}
+  if (h === '#/planlar') return {view: 'plans'};
+  if (h === '#/kategorisiz') return {view: 'orphans'};
+  const m = h.match(/^#\/k\/(.+)$/);
+  const cat = S.cats.find(c => c.name === (m && m[1])) || S.cats[0];
+  return {view: 'cat', cat};
 }
+window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); });
 
-function itemCard(it) {
-  const thumb = /^https?:/i.test(it.thumb_url) ?
-    `<img src="${esc(it.thumb_url)}" loading="lazy" referrerpolicy="no-referrer" alt="" onerror="this.remove()">` : '';
-  const dl = S.dl && it.status !== 'indirildi' && it.status !== 'bekliyor' && it.status !== 'iniyor'
-    ? `<button class="b" data-act="dl" data-id="${it.id}">${it.status === 'hata' ? 'Tekrar dene' : 'İndir'}</button>` : '';
+/* ---------- Bileşenler ---------- */
+function itemCard(it, showWhere) {
+  const thumb = /^https?:/i.test(it.thumb_url) ? `<img src="${esc(it.thumb_url)}" loading="lazy" referrerpolicy="no-referrer" alt="" data-ph="${esc(it.platform.slice(0, 2).toUpperCase())}" onerror="this.parentNode.textContent=this.dataset.ph">` : esc(it.platform.slice(0, 2).toUpperCase());
+  const status = it.status === 'kayitli' ? '' : `<span class="st-${esc(it.status)}">${{bekliyor:'sırada', iniyor:'iniyor…', indirildi:'indirildi', hata:'hata'}[it.status] || esc(it.status)}</span>`;
+  const canDl = S.dl && !['indirildi', 'bekliyor', 'iniyor'].includes(it.status);
+  const moveOpts = S.cats.map((c, ci) => c.subs.map((s, si) => `<option value="${ci}:${si}">${esc(c.name)} / ${esc(s)}</option>`).join('')).join('');
   return `<article class="card" draggable="true" data-id="${it.id}">
-    ${thumb}
-    <div class="row"><span class="badge">${esc(it.platform)}</span>
-      <span class="small st-${esc(it.status)}">${it.status === 'kayitli' ? '' : esc(it.status)}</span></div>
-    <a class="title" href="${esc(safeUrl(it.url))}" target="_blank" rel="noopener noreferrer">${esc(it.title || it.url)}</a>
-    <textarea class="note" data-id="${it.id}" placeholder="Not ekle…" rows="1">${esc(it.note)}</textarea>
-    <div class="row act">${dl}
-      <select data-act="addcard" data-id="${it.id}" aria-label="Plan kartına ekle">
-        <option value="">Karta ekle…</option>
-        ${S.cards.map(c => `<option value="${c.id}">${esc(c.title)}</option>`).join('')}
-      </select>
-      <button class="b d" data-act="del" data-id="${it.id}">Sil</button></div>
-    ${it.file_path ? `<div class="small">Dosya: ${esc(it.file_path)} <button class="b" data-act="cpath" data-id="${it.id}">Yolu kopyala</button></div>` : ''}
-    ${it.error ? `<div class="err">${esc(it.error)}</div>` : ''}
+    <a class="thumb" href="${esc(safeUrl(it.url))}" target="_blank" rel="noopener noreferrer" aria-label="Videoyu aç">${thumb}</a>
+    <div class="cbody">
+      ${showWhere ? `<span class="where">${esc(it.category)} / ${esc(it.subcategory)}</span>` : ''}
+      <a class="ctitle" href="${esc(safeUrl(it.url))}" target="_blank" rel="noopener noreferrer">${esc(it.title || it.url)}</a>
+      <div class="cmeta"><span class="chip">${esc(it.platform)}</span>${status}
+        ${canDl ? `<button class="btn sm" data-act="dl" data-id="${it.id}">${it.status === 'hata' ? 'Tekrar dene' : 'İndir'}</button>` : ''}</div>
+      <textarea class="note" data-id="${it.id}" rows="1" placeholder="Not ekle" aria-label="Not">${esc(it.note)}</textarea>
+      ${it.error ? `<div class="err">${esc(it.error)}</div>` : ''}
+      ${it.file_path ? `<div class="path">${esc(it.file_path)}</div>` : ''}
+    </div>
+    <details class="menu"><summary aria-label="Video işlemleri">⋯</summary><div class="pop">
+      <div class="lbl">Plan kartına ekle</div>
+      <select data-act="addcard" data-id="${it.id}" aria-label="Plan kartına ekle"><option value="">Kart seç…</option>${S.cards.map(c => `<option value="${c.id}">${esc(c.title)}</option>`).join('')}</select>
+      <div class="lbl">Taşı</div>
+      <select data-act="moveitem" data-id="${it.id}" aria-label="Başka başlığa taşı"><option value="">Başlık seç…</option>${moveOpts}</select>
+      ${it.file_path ? `<button data-act="cpath" data-id="${it.id}">Dosya yolunu kopyala</button>` : ''}
+      <button class="danger" data-act="del" data-id="${it.id}">Videoyu sil</button>
+    </div></details>
   </article>`;
 }
 
-function renderItems() {
-  const items = S.items.filter(visible);
-  const known = new Set(S.cats.flatMap(c => c.subs.map(s => c.name + '\u0000' + s)));
-  const groups = S.cats.map(c => ({name: c.name, subs: c.subs.slice()}));
-  const other = items.filter(i => !known.has(i.category + '\u0000' + i.subcategory));
-  const html = groups.map(g => `<section class="cat"><h2>${esc(g.name)}</h2><div class="cols">
-    ${g.subs.map(s => {
-      const list = items.filter(i => i.category === g.name && i.subcategory === s);
-      return `<div class="col" data-cat="${esc(g.name)}" data-sub="${esc(s)}">
-        <h3>${esc(s)} <span class="n">${list.length}</span>
-          ${S.dl && list.length ? `<button class="b" data-act="dlsub" data-cat="${esc(g.name)}" data-sub="${esc(s)}">Hepsini indir</button>` : ''}</h3>
-        ${list.map(itemCard).join('') || '<div class="empty">Boş. Kartı buraya sürükle.</div>'}</div>`;
-    }).join('')}</div></section>`).join('');
-  const otherHtml = other.length ? `<section class="cat"><h2>Diğer (kategorisi silinmiş)</h2>
-    <div class="cols"><div class="col" data-cat="" data-sub="">${other.map(itemCard).join('')}</div></div></section>` : '';
-  $('#main').innerHTML = (html + otherHtml) || '<p class="empty">Henüz kayıt yok. Telegram botuna bir link gönder.</p>';
-  $('#count').textContent = `${items.length} kayıt`;
+const matches = (it) => (!S.plat || it.platform === S.plat) &&
+  (!S.q || [it.title, it.note, it.url, it.category, it.subcategory].some(v => fold(v).includes(fold(S.q))));
+
+function renderNav(r) {
+  $('#catnav').innerHTML = S.cats.map(c => `<a class="navlink" href="#/k/${encodeURIComponent(c.name)}" ${r.view === 'cat' && r.cat === c ? 'aria-current="page"' : ''}>
+      <span class="dot" style="background:${hue(c.name)}"></span>${esc(c.name)}<span class="n">${count(c.name)}</span></a>`).join('');
+  const o = orphans().length;
+  $('#orphannav').hidden = !o; $('#orphancount').textContent = o || '';
+  $('#orphannav').setAttribute('aria-current', r.view === 'orphans' ? 'page' : 'false');
+  $('#plannav').setAttribute('aria-current', r.view === 'plans' ? 'page' : 'false');
+  $('#plancount').textContent = S.cards.length || '';
 }
 
-function renderCards() {
+function renderCategory(cat) {
+  const total = count(cat.name);
+  const ex = cat.subs[0] ? `${cat.name.replace(/ /g, '_')}/${cat.subs[0].replace(/ /g, '_')}` : '';
+  const lanes = cat.subs.map((s, si) => {
+    const list = S.items.filter(i => i.category === cat.name && i.subcategory === s);
+    return `<section class="lane" data-cat="${esc(cat.name)}" data-sub="${esc(s)}" aria-label="${esc(s)}">
+      <div class="lanehead"><h3>${esc(s)}</h3><span class="n">${list.length}</span>
+        <details class="menu"><summary aria-label="${esc(s)} işlemleri">⋯</summary><div class="pop">
+          <button data-act="subrename" data-sub="${esc(s)}">Yeniden adlandır</button>
+          ${si > 0 ? `<button data-act="submove" data-dir="-1" data-sub="${esc(s)}">Sola taşı</button>` : ''}
+          ${si < cat.subs.length - 1 ? `<button data-act="submove" data-dir="1" data-sub="${esc(s)}">Sağa taşı</button>` : ''}
+          ${S.dl && list.length ? `<button data-act="dlsub" data-sub="${esc(s)}">Hepsini indir</button>` : ''}
+          <button class="danger" data-act="subdel" data-sub="${esc(s)}">Başlığı sil</button>
+        </div></details></div>
+      ${list.map(i => itemCard(i)).join('') || '<div class="empty">Henüz video yok. Bota link at ya da bir videoyu buraya sürükle.</div>'}
+    </section>`;
+  }).join('');
+  $('#view').innerHTML = `<div class="pagehead"><span class="dot" style="background:${hue(cat.name)}"></span><h1 tabindex="-1">${esc(cat.name)}</h1>
+      <span class="meta">${total} video</span><span style="flex:1"></span>
+      <details class="menu"><summary aria-label="Kategori işlemleri">⋯</summary><div class="pop">
+        <button data-act="catrename">Kategoriyi yeniden adlandır</button>
+        ${S.cats.indexOf(cat) > 0 ? '<button data-act="catmove" data-dir="-1">Listede yukarı taşı</button>' : ''}
+        ${S.cats.indexOf(cat) < S.cats.length - 1 ? '<button data-act="catmove" data-dir="1">Listede aşağı taşı</button>' : ''}
+        <button class="danger" data-act="catdel">Kategoriyi sil</button></div></details></div>
+    <p class="hint">${ex ? `Botta kısa yol: linkin yanına <code>${esc(ex)}</code> yaz, sormadan buraya kaydeder.` : ''}</p>
+    <div class="lanes">${lanes}<button class="lane add" data-act="subadd">+ Alt başlık ekle</button></div>`;
+}
+
+function renderSearch() {
+  const list = S.items.filter(matches);
+  $('#view').innerHTML = `<div class="pagehead"><h1>Arama</h1><span class="meta">${list.length} sonuç</span></div><p class="hint"></p>` +
+    (list.length ? `<div class="results">${list.map(i => itemCard(i, true)).join('')}</div>` : '<p class="empty">Eşleşen video yok. Aramayı kısaltmayı veya platform filtresini kaldırmayı dene.</p>');
+}
+
+function renderOrphans() {
+  const list = orphans();
+  $('#view').innerHTML = `<div class="pagehead"><h1 tabindex="-1">Kategorisiz</h1><span class="meta">${list.length} video</span></div>
+    <p class="hint">Bu videoların kategorisi artık yok. Her birinin ⋯ menüsünden bir başlığa taşı.</p>` +
+    (list.length ? `<div class="results">${list.map(i => itemCard(i, true)).join('')}</div>` : '<p class="empty">Kategorisiz video kalmadı.</p>');
+}
+
+function renderPlans() {
   const opts = (c) => S.items.filter(i => !c.items.some(x => x.id === i.id))
     .map(i => `<option value="${i.id}">[${esc(i.category)}/${esc(i.subcategory)}] ${esc((i.title || i.url).slice(0, 60))}</option>`).join('');
-  $('#main').innerHTML = `<div class="plan"><div class="head">
-      <input class="field" id="newtitle" placeholder="Yeni plan kartı başlığı…">
-      <button class="b p" data-act="newcard">Kart oluştur</button></div></div>` +
-    S.cards.map(c => `<div class="plan" data-card="${c.id}">
-      <div class="head"><input class="field" data-act="ctitle" value="${esc(c.title)}" aria-label="Başlık">
-        <button class="b p" data-act="copy">Kopyala</button>
-        <button class="b d" data-act="delcard">Kartı sil</button></div>
-      <textarea class="note" data-act="cnote" rows="3" placeholder="Kendi notların (metin, fikir, açıklama)…">${esc(c.note)}</textarea>
+  $('#view').innerHTML = `<div class="plans"><div class="pagehead"><h1>Plan kartları</h1></div>
+    <p class="hint">Bir plan kartında videoları ve kendi notlarını topla, <b>Kopyala</b> ile hepsini tek metin olarak Claude'a yapıştır.</p>
+    <div class="newplan"><input class="field" id="newtitle" placeholder="Yeni kart başlığı, örn. Cuma reels" aria-label="Yeni kart başlığı">
+      <button class="btn primary" data-act="newcard">Kart oluştur</button></div>
+    ${S.cards.map(c => `<section class="plan" data-card="${c.id}">
+      <div class="head"><input class="field" data-act="ctitle" value="${esc(c.title)}" aria-label="Kart başlığı">
+        <button class="btn primary" data-act="copy">Kopyala</button>
+        <details class="menu"><summary aria-label="Kart işlemleri">⋯</summary><div class="pop"><button class="danger" data-act="delcard">Kartı sil</button></div></details></div>
+      <textarea class="field" data-act="cnote" placeholder="Kendi notların: metin, fikir, açıklama…" aria-label="Kart notu">${esc(c.note)}</textarea>
       ${c.items.map((v, n) => `<div class="vid" data-item="${v.id}"><span class="num">${n + 1}.</span><div class="body">
-          <span class="badge">${esc(v.category)} / ${esc(v.subcategory)}</span>
-          <a class="title" href="${esc(safeUrl(v.url))}" target="_blank" rel="noopener noreferrer">${esc(v.title || v.url)}</a>
-          <input class="field" data-act="vnote" value="${esc(v.card_note)}" placeholder="Bu videoyla ilgili notum…"></div>
-          <button class="b" data-act="up" title="Yukarı">↑</button><button class="b" data-act="down" title="Aşağı">↓</button>
-          <button class="b d" data-act="rmvid" title="Karttan çıkar">✕</button></div>`).join('')}
-      <div class="row act"><select data-act="addvid"><option value="">Video ekle…</option>${opts(c)}</select></div>
-    </div>`).join('') || '';
-  $('#count').textContent = `${S.cards.length} kart`;
+          <span class="where">${esc(v.category)} / ${esc(v.subcategory)}</span><br>
+          <a class="ctitle" href="${esc(safeUrl(v.url))}" target="_blank" rel="noopener noreferrer">${esc(v.title || v.url)}</a>
+          <input class="field" data-act="vnote" value="${esc(v.card_note)}" placeholder="Bu videoyla ilgili notum" aria-label="Video notu"></div>
+          <button class="btn sm" data-act="up" aria-label="Yukarı taşı">↑</button><button class="btn sm" data-act="down" aria-label="Aşağı taşı">↓</button>
+          <button class="btn sm danger" data-act="rmvid" aria-label="Karttan çıkar">✕</button></div>`).join('')}
+      <div style="margin-top:8px"><select class="field" data-act="addvid" aria-label="Karta video ekle"><option value="">Karta video ekle…</option>${opts(c)}</select></div>
+    </section>`).join('') || '<p class="empty">Henüz plan kartı yok. Yukarıya bir başlık yazıp oluştur.</p>'}</div>`;
 }
 
-function render() { S.tab === 'items' ? renderItems() : renderCards(); }
+function render() {
+  if (!S.cats.length) return;
+  const r = route();
+  renderNav(r);
+  if (S.q || S.plat) {
+    if (r.view === 'plans') renderPlans(); else renderSearch();
+  } else if (r.view === 'plans') renderPlans();
+  else if (r.view === 'orphans') renderOrphans();
+  else renderCategory(r.cat);
+}
+
+/* ---------- Diyalog ---------- */
+function dialog({title, text = '', fields = [], confirm = 'Kaydet', danger = false, error = ''}) {
+  return new Promise((resolve) => {
+    const d = $('#dlg');
+    d.innerHTML = `<form method="dialog"><h2>${esc(title)}</h2>${text ? `<p>${esc(text)}</p>` : ''}${error ? `<p role="alert" style="color:var(--danger)">${esc(error)}</p>` : ''}
+      ${fields.map((f, i) => `<label for="f${i}">${esc(f.label)}</label>` + (f.options
+        ? `<select class="field" id="f${i}">${f.options.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select>`
+        : `<input class="field" id="f${i}" value="${esc(f.value || '')}" maxlength="40" autocomplete="off">`)).join('')}
+      <div class="actions"><button class="btn" value="cancel" formnovalidate>Vazgeç</button>
+      <button class="btn ${danger ? 'danger' : 'primary'}" value="ok">${esc(confirm)}</button></div></form>`;
+    // close olayına değil submit/cancel'a bağlı: her tarayıcıda aynı sırayla çalışır
+    let done = false;
+    const finish = (v) => { if (!done) { done = true; resolve(v); } };
+    d.querySelector('form').addEventListener('submit', (ev) => {
+      finish(ev.submitter && ev.submitter.value === 'ok' ? fields.map((_, i) => $('#f' + i).value) : null);
+    });
+    d.onclose = () => finish(null);  // Esc veya dışarıdan kapanma
+    d.returnValue = ''; d.showModal();
+    const first = d.querySelector('input,select'); if (first) { first.focus(); if (first.select) first.select(); }
+  });
+}
+
+// Diyalog hata verirse yazdıkların silinmeden, hata mesajıyla yeniden açılır
+async function ask(opts, fn) {
+  let o = opts;
+  for (;;) {
+    const v = await dialog(o); if (!v) return null;
+    S.lastError = '';
+    if (await fn(v)) return v;
+    o = {...opts, fields: opts.fields.map((f, i) => ({...f, value: v[i]})), error: S.lastError || 'Kaydedilemedi'};
+  }
+}
+
+async function catalog(path, body, okMsg) {
+  const r = await run('POST', '/api/catalog/' + path, body);
+  if (!r) return false;
+  if (okMsg) toast(okMsg);
+  await load(true);
+  document.querySelector('.pagehead h1')?.focus({preventScroll: true});  // odak sayfa başlığına: klavye/ekran okuyucu bağlamı kaybolmasın
+  return true;
+}
+
+/* ---------- Eylemler ---------- */
+document.addEventListener('click', async (e) => {
+  // açık menüleri dışarı tıklayınca kapat
+  document.querySelectorAll('details.menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; });
+  const b = e.target.closest('[data-act]'); if (!b || ['SELECT', 'INPUT', 'TEXTAREA'].includes(b.tagName)) return;
+  const act = b.dataset.act, id = b.dataset.id, sub = b.dataset.sub, dir = +b.dataset.dir;
+  const r = route(), cat = r.cat;
+  const card = b.closest('[data-card]'), cid = card && card.dataset.card, vid = b.closest('[data-item]')?.dataset.item;
+  b.closest('details.menu')?.removeAttribute('open');
+
+  if (act === 'copy') {
+    await S.saving;
+    try { const t = await api('GET', `/api/cards/${cid}/copy`); toast(await copyText(t) ? 'Kopyalandı. Claude’a yapıştırabilirsin' : 'Kopyalanamadı'); } catch (err) {}
+    return;
+  }
+  if (act === 'cpath') { const it = S.items.find(i => i.id === +id); toast(it && await copyText(it.file_path) ? 'Yol kopyalandı' : 'Kopyalanamadı'); return; }
+
+  // --- kategori / alt başlık yönetimi ---
+  if (act === 'catadd') {
+    const v = await ask({title: 'Yeni kategori', text: 'Kategori ve içine koyacağın ilk alt başlığı yaz.', fields: [{label: 'Kategori adı'}, {label: 'İlk alt başlık'}], confirm: 'Ekle'},
+      (v) => catalog('category/add', {name: v[0], first_sub: v[1]}, 'Kategori eklendi'));
+    if (v) location.hash = '#/k/' + encodeURIComponent(v[0].trim().replace(/\s+/g, ' '));
+    return;
+  }
+  if (act === 'catrename') {
+    const v = await ask({title: 'Kategoriyi yeniden adlandır', fields: [{label: 'Yeni ad', value: cat.name}]},
+      (v) => v[0].trim() === cat.name || catalog('category/rename', {name: cat.name, new_name: v[0]}, 'Ad değişti'));
+    if (v) location.hash = '#/k/' + encodeURIComponent(v[0].trim().replace(/\s+/g, ' '));
+    return;
+  }
+  if (act === 'catmove') { await catalog('category/move', {name: cat.name, direction: dir}); return; }
+  if (act === 'catdel') {
+    const n = count(cat.name), others = S.cats.filter(c => c !== cat);
+    if (!others.length) return toast('Son kategori silinemez');
+    const options = others.flatMap(c => c.subs.map(s => ({value: c.name + '\u0001' + s, label: `${c.name} / ${s}`})));
+    const v = await dialog({title: `“${cat.name}” silinsin mi?`, danger: true, confirm: 'Sil',
+      text: n ? `İçinde ${n} video var. Videolar silinmez, seçtiğin yere taşınır.` : 'Kategori boş, hemen silinir.',
+      fields: n ? [{label: 'Videolar nereye taşınsın?', options}] : []});
+    if (v) { const [mc, ms] = n ? v[0].split('\u0001') : ['', '']; if (await catalog('category/delete', {name: cat.name, move_to_category: mc, move_to_sub: ms}, 'Kategori silindi')) location.hash = ''; }
+    return;
+  }
+  if (act === 'subadd') {
+    await ask({title: 'Yeni alt başlık', text: `“${cat.name}” kategorisine eklenecek.`, fields: [{label: 'Alt başlık adı'}], confirm: 'Ekle'},
+      (v) => catalog('sub/add', {category: cat.name, name: v[0]}, 'Alt başlık eklendi'));
+    return;
+  }
+  if (act === 'subrename') {
+    await ask({title: 'Alt başlığı yeniden adlandır', text: 'İçindeki videolar yeni adla kalır.', fields: [{label: 'Yeni ad', value: sub}]},
+      (v) => v[0].trim() === sub || catalog('sub/rename', {category: cat.name, name: sub, new_name: v[0]}, 'Ad değişti'));
+    return;
+  }
+  if (act === 'submove') { await catalog('sub/move', {category: cat.name, name: sub, direction: dir}); return; }
+  if (act === 'subdel') {
+    const n = count(cat.name, sub), others = cat.subs.filter(s => s !== sub);
+    if (!others.length) return toast('Bir kategoride en az bir alt başlık kalmalı');
+    const v = await dialog({title: `“${sub}” silinsin mi?`, danger: true, confirm: 'Sil',
+      text: n ? `İçinde ${n} video var. Videolar silinmez, seçtiğin başlığa taşınır.` : 'Başlık boş, hemen silinir.',
+      fields: n ? [{label: 'Videolar nereye taşınsın?', options: others.map(s => ({value: s, label: s}))}] : []});
+    if (v) await catalog('sub/delete', {category: cat.name, name: sub, move_to_sub: n ? v[0] : ''}, 'Alt başlık silindi');
+    return;
+  }
+
+  // --- video ve plan kartı işlemleri ---
+  if (act === 'dl') { await run('POST', `/api/items/${id}/download`); toast('İndirme sıraya alındı'); }
+  else if (act === 'dlsub') { const rr = await run('POST', '/api/download-sub', {category: cat.name, subcategory: sub}); if (rr) toast(`${rr.queued} video sıraya alındı`); }
+  else if (act === 'del') { if (!confirm('Bu video silinsin mi?')) return; await run('DELETE', `/api/items/${id}`); }
+  else if (act === 'newcard') { const t = $('#newtitle').value.trim(); if (!t) return toast('Kart için bir başlık yaz'); await run('POST', '/api/cards', {title: t}); }
+  else if (act === 'delcard') { if (!confirm('Kart silinsin mi? Videolar silinmez.')) return; await run('DELETE', `/api/cards/${cid}`); }
+  else if (act === 'up' || act === 'down') await run('PATCH', `/api/cards/${cid}/items/${vid}`, {move: act === 'up' ? -1 : 1});
+  else if (act === 'rmvid') await run('DELETE', `/api/cards/${cid}/items/${vid}`);
+  else return;
+  await load();
+});
+
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('details.menu[open]').forEach(d => d.open = false); });
 
 async function copyText(text) {
   try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
@@ -188,43 +448,18 @@ async function copyText(text) {
   ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok;
 }
 
-document.addEventListener('click', async (e) => {
-  const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'SELECT' || b.tagName === 'INPUT' || b.tagName === 'TEXTAREA') return;
-  const act = b.dataset.act, id = b.dataset.id;
-  const card = b.closest('[data-card]'), cid = card && card.dataset.card, vid = b.closest('[data-item]')?.dataset.item;
-  if (act === 'copy') {
-    await S.saving;  // yazılan son not kaydedilmeden kopyalama
-    try { const t = await api('GET', `/api/cards/${cid}/copy`);
-      toast(await copyText(t) ? 'Kopyalandı: Claude’a yapıştırabilirsin' : 'Kopyalanamadı'); } catch (err) {}
-    return;
-  }
-  if (act === 'cpath') { const it = S.items.find(i => i.id === +id); toast(it && await copyText(it.file_path) ? 'Yol kopyalandı' : 'Kopyalanamadı'); return; }
-  if (act === 'dl') { await run('POST', `/api/items/${id}/download`); toast('İndirme sıraya alındı'); }
-  else if (act === 'dlsub') { const r = await run('POST', '/api/download-sub', {category: b.dataset.cat, subcategory: b.dataset.sub}); if (r) toast(`${r.queued} video sıraya alındı`); }
-  else if (act === 'del') { if (!confirm('Bu kayıt silinsin mi?')) return; await run('DELETE', `/api/items/${id}`); }
-  else if (act === 'newcard') { const t = $('#newtitle').value.trim(); if (!t) return toast('Başlık yaz'); await run('POST', '/api/cards', {title: t}); }
-  else if (act === 'delcard') { if (!confirm('Kart silinsin mi? (Videolar silinmez)')) return; await run('DELETE', `/api/cards/${cid}`); }
-  else if (act === 'up' || act === 'down') await run('PATCH', `/api/cards/${cid}/items/${vid}`, {move: act === 'up' ? -1 : 1});
-  else if (act === 'rmvid') await run('DELETE', `/api/cards/${cid}/items/${vid}`);
-  else return;
-  await load();
-});
-
 document.addEventListener('change', async (e) => {
   const t = e.target, act = t.dataset.act; if (!act) return;
   const cid = t.closest('[data-card]')?.dataset.card, vid = t.closest('[data-item]')?.dataset.item;
-  // Not/başlık düzenlemelerinde ekran yeniden ÇİZİLMEZ (yazmakta olduğun alan bozulmasın); sadece kaydedilir
-  const saveInPlace = async (body, path) => {
-    const r = await run('PATCH', path, body);
-    const i = S.cards.findIndex(c => c.id === +cid);
-    if (r && i >= 0) S.cards[i] = r;
-  };
-  if (act === 'addcard' && t.value) { await run('POST', `/api/cards/${t.value}/items`, {item_id: +t.dataset.id}); toast('Karta eklendi'); }
-  else if (act === 'addvid' && t.value) await run('POST', `/api/cards/${cid}/items`, {item_id: +t.value});
-  else if (act === 'ctitle') {
-    if (!t.value.trim()) { t.value = S.cards.find(c => c.id === +cid)?.title || ''; return; }
-    return saveInPlace({title: t.value}, `/api/cards/${cid}`);
+  // Not/başlık düzenlemelerinde ekran yeniden ÇİZİLMEZ (yazdığın alan bozulmasın); sadece kaydedilir
+  const saveInPlace = async (body, path) => { const rr = await run('PATCH', path, body); const i = S.cards.findIndex(c => c.id === +cid); if (rr && i >= 0) S.cards[i] = rr; };
+  if (act === 'addcard' && t.value) { await run('POST', `/api/cards/${t.value}/items`, {item_id: +t.dataset.id}); toast('Plan kartına eklendi'); }
+  else if (act === 'moveitem' && t.value) {
+    const [ci, si] = t.value.split(':').map(Number); const c = S.cats[ci];
+    await run('PATCH', `/api/items/${t.dataset.id}`, {category: c.name, subcategory: c.subs[si]}); toast(`Taşındı: ${c.name} / ${c.subs[si]}`);
   }
+  else if (act === 'addvid' && t.value) await run('POST', `/api/cards/${cid}/items`, {item_id: +t.value});
+  else if (act === 'ctitle') { if (!t.value.trim()) { t.value = S.cards.find(c => c.id === +cid)?.title || ''; return; } return saveInPlace({title: t.value}, `/api/cards/${cid}`); }
   else if (act === 'cnote') return saveInPlace({note: t.value}, `/api/cards/${cid}`);
   else if (act === 'vnote') return saveInPlace({note: t.value}, `/api/cards/${cid}/items/${vid}`);
   else return;
@@ -232,45 +467,41 @@ document.addEventListener('change', async (e) => {
 });
 
 document.addEventListener('focusout', (e) => {
-  const t = e.target; if (!t.classList.contains('note') || !t.dataset.id) return;
+  const t = e.target; if (!t.classList?.contains('note') || !t.dataset.id) return;
   const it = S.items.find(i => i.id === +t.dataset.id), val = t.value;
-  if (it && it.note !== val) track(async () => { const r = await api('PATCH', `/api/items/${t.dataset.id}`, {note: val}); it.note = r.note; });
+  if (it && it.note !== val) track(async () => { const rr = await api('PATCH', `/api/items/${t.dataset.id}`, {note: val}); it.note = rr.note; });
 });
 
-// Metin alanında fareyle seçim yaparken kart sürüklenmesin
-document.addEventListener('mousedown', (e) => { if (e.target.closest('textarea,input,select')) e.target.closest('.card')?.setAttribute('draggable', 'false'); });
-document.addEventListener('mouseup', () => document.querySelectorAll('.card[draggable=false]').forEach(c => c.setAttribute('draggable', 'true')));
-// Sürükle-bırak: kartı başka alt başlığa taşı
+/* ---------- Sürükle-bırak ---------- */
 let dragId = null;
-document.addEventListener('dragstart', (e) => { const c = e.target.closest?.('.card'); if (!c) return;
-  dragId = +c.dataset.id; c.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(dragId)); });
+document.addEventListener('mousedown', (e) => { if (e.target.closest('textarea,input,select,summary')) e.target.closest('.card')?.setAttribute('draggable', 'false'); });
+document.addEventListener('mouseup', () => document.querySelectorAll('.card[draggable=false]').forEach(c => c.setAttribute('draggable', 'true')));
+document.addEventListener('dragstart', (e) => { const c = e.target.closest?.('.card'); if (!c) return; dragId = +c.dataset.id; c.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(dragId)); });
 document.addEventListener('dragend', () => { document.querySelectorAll('.drag,.over').forEach(n => n.classList.remove('drag', 'over')); dragId = null; });
-document.addEventListener('dragover', (e) => { const col = e.target.closest?.('.col'); if (col && dragId && col.dataset.cat) { e.preventDefault(); col.classList.add('over'); } });
-document.addEventListener('dragleave', (e) => e.target.closest?.('.col')?.classList.remove('over'));
+document.addEventListener('dragover', (e) => { const l = e.target.closest?.('.lane[data-cat]'); if (l && dragId) { e.preventDefault(); l.classList.add('over'); } });
+document.addEventListener('dragleave', (e) => e.target.closest?.('.lane')?.classList.remove('over'));
 document.addEventListener('drop', async (e) => {
-  const col = e.target.closest?.('.col'); if (!col || !dragId || !col.dataset.cat) return;
+  const l = e.target.closest?.('.lane[data-cat]'); if (!l || !dragId) return;
   e.preventDefault(); const id = dragId; dragId = null;
   const it = S.items.find(i => i.id === id);
-  if (it && (it.category !== col.dataset.cat || it.subcategory !== col.dataset.sub)) {
-    try { await api('PATCH', `/api/items/${id}`, {category: col.dataset.cat, subcategory: col.dataset.sub}); } catch (err) {}
-  }
+  if (it && (it.category !== l.dataset.cat || it.subcategory !== l.dataset.sub)) { await run('PATCH', `/api/items/${id}`, {category: l.dataset.cat, subcategory: l.dataset.sub}); toast(`Taşındı: ${l.dataset.sub}`); }
   await load();
 });
 
-$('#tab-items').onclick = () => setTab('items');
-$('#tab-cards').onclick = () => setTab('cards');
-function setTab(t) { S.tab = t; $('#tab-items').classList.toggle('on', t === 'items'); $('#tab-cards').classList.toggle('on', t === 'cards');
-  $('#q').style.display = $('#plat').style.display = t === 'items' ? '' : 'none'; render(); }
-$('#q').oninput = (e) => { S.q = e.target.value; if (S.tab === 'items') renderItems(); };
-$('#plat').onchange = (e) => { S.plat = e.target.value; if (S.tab === 'items') renderItems(); };
+/* ---------- Arama ve yenileme ---------- */
+let qT;
+$('#q').addEventListener('input', (e) => { S.q = e.target.value.trim(); clearTimeout(qT); qT = setTimeout(render, 120); });
+$('#plat').addEventListener('change', (e) => { S.plat = e.target.value; render(); });
+$('#plannav').addEventListener('click', () => { S.q = ''; S.plat = ''; $('#q').value = ''; $('#plat').value = ''; });
+$('#catnav').addEventListener('click', (e) => { if (e.target.closest('a')) { S.q = ''; S.plat = ''; $('#q').value = ''; $('#plat').value = ''; } });
 
-// Her 4 sn'de değişiklikleri çek (bottan gelen kayıtlar, indirme durumu); yazarken/sürüklerken dokunma
+// Her 4 sn'de değişiklikleri çek (bottan gelen videolar, indirme durumu); yazarken/sürüklerken dokunma
 setInterval(() => {
   const typing = ['TEXTAREA', 'INPUT', 'SELECT'].includes(document.activeElement?.tagName);
-  if (!typing && dragId === null && !document.hidden) load().catch(() => {});
+  if (!typing && dragId === null && !document.hidden && !document.querySelector('details.menu[open]') && !$('#dlg').open) load().catch(() => {});
 }, 4000);
 
-load().catch(() => { $('#main').innerHTML = '<p class="empty">Sunucuya ulaşılamadı.</p>'; });
+load().catch(() => { $('#view').innerHTML = '<p class="empty">Sunucuya ulaşılamadı. python -m app çalışıyor mu?</p>'; });
 </script>
 </body>
 </html>

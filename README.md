@@ -9,7 +9,8 @@ Instagram, TikTok ve YouTube'da kaydettiğin videolar kaybolmasın: linki **Tele
 ## Özellikler
 - **Telegram botu:** link at → bot "nereye koyayım?" diye butonlarla sorar. Hızlı yol: `link diy/hook` yazarsan sormadan kaydeder.
 - **Kendi kategorilerin:** `categories.yaml` dosyasında sen belirlersin (takma adlarla: `d/h`).
-- **Web sayfası** (`http://127.0.0.1:8000`): kategoriler alt alta, alt başlıklar kanban sütunu, kartları sürükle-bırak taşı, not ekle, ara/filtrele.
+- **Web sayfası** (`http://127.0.0.1:8000`): solda kategori listesi, **her kategori ayrı sayfa**; alt başlıklar kanban sütunu, kartları sürükle-bırak (ya da ⋯ menüsünden) taşı, not ekle, tüm kategorilerde ara.
+- **Kategori yönetimi web sayfasından:** kategori ve alt başlık ekle, yeniden adlandır, sırala, sil (içinde video varsa nereye taşınacağını sorar). Değişiklikler `categories.yaml`'a yazılır, bot da hemen görür.
 - **Video indir:** tek video ya da alt başlıktaki hepsi (yt-dlp). İstersen bot her kaydı otomatik indirir.
 - **Plan kartı:** kartın notu + istediğin videolar (sıralı, her birine not) → **Kopyala** düğmesi linkleri ve notların hepsini tek metin yapar.
 

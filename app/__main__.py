@@ -11,6 +11,7 @@ import uvicorn
 
 from . import db
 from .bot import build_application
+from .catalog import Catalog
 from .config import load_categories, load_config
 from .downloader import Downloader
 from .web import create_app
@@ -44,8 +45,12 @@ def main() -> int:
     downloader = Downloader(config.db_path, config.downloads_dir, config.cookies_file)
     downloader.start()
 
+    catalog = Catalog(categories, "categories.yaml", config.db_path)
+    fixed = catalog.reconcile()  # sadece harf farkı olan eski kayıtları yapılandırmadaki yazıma çek
+    if fixed:
+        print(f"{fixed} videonun kategori yazımı düzeltildi.")
     server = uvicorn.Server(uvicorn.Config(
-        create_app(config, categories, downloader),
+        create_app(config, categories, downloader, catalog),
         host=config.web_host, port=config.web_port, log_level="warning"))
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
     bot_problem = ("TELEGRAM_BOT_TOKEN yok (.env)" if not token else

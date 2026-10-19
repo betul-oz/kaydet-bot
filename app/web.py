@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, StringConstraints
 
 from . import db
 from .cards import format_card
+from .catalog import Catalog, CatalogError
 from .config import Categories, Config
 from .downloader import Downloader
 
@@ -54,8 +55,47 @@ class CardItemPatch(BaseModel):
     move: int | None = Field(None, description="-1 yukarı, 1 aşağı")
 
 
+class CatAdd(BaseModel):
+    name: str = Field(max_length=200)
+    first_sub: str = Field(max_length=200)
+
+
+class CatRef(BaseModel):
+    name: str = Field(max_length=200)
+
+
+class CatRename(CatRef):
+    new_name: str = Field(max_length=200)
+
+
+class CatMove(CatRef):
+    direction: int
+
+
+class CatDelete(CatRef):
+    move_to_category: str = Field("", max_length=200)
+    move_to_sub: str = Field("", max_length=200)
+
+
+class SubAdd(BaseModel):
+    category: str = Field(max_length=200)
+    name: str = Field(max_length=200)
+
+
+class SubRename(SubAdd):
+    new_name: str = Field(max_length=200)
+
+
+class SubMove(SubAdd):
+    direction: int
+
+
+class SubDelete(SubAdd):
+    move_to_sub: str = Field("", max_length=200)
+
+
 def create_app(config: Config, categories: Categories,
-               downloader: Downloader | None = None) -> FastAPI:
+               downloader: Downloader | None = None, catalog: Catalog | None = None) -> FastAPI:
     app = FastAPI(title="kaydet-bot", docs_url=None, redoc_url=None, openapi_url=None)
     # DNS rebinding'e karşı: yalnızca yerel adlarla (ve config.allowed_hosts ile) erişim
     hosts = {"localhost", "127.0.0.1", "[::1]", *config.allowed_hosts}
@@ -191,5 +231,47 @@ def create_app(config: Config, categories: Categories,
         if card is None:
             raise HTTPException(404, "Kart yok")
         return format_card(card)
+
+    # ---- Kategori / alt başlık yönetimi ----
+    def edit(fn, *args):
+        if catalog is None:
+            raise HTTPException(503, "Kategori düzenleme kapalı")
+        try:
+            fn(*args)
+        except CatalogError as e:
+            raise HTTPException(e.status, str(e))
+        return state()
+
+    @app.post("/api/catalog/category/add")
+    def cat_add(b: CatAdd):
+        return edit(catalog and catalog.add_category, b.name, b.first_sub)
+
+    @app.post("/api/catalog/category/rename")
+    def cat_rename(b: CatRename):
+        return edit(catalog and catalog.rename_category, b.name, b.new_name)
+
+    @app.post("/api/catalog/category/move")
+    def cat_move(b: CatMove):
+        return edit(catalog and catalog.move_category, b.name, b.direction)
+
+    @app.post("/api/catalog/category/delete")
+    def cat_delete(b: CatDelete):
+        return edit(catalog and catalog.delete_category, b.name, b.move_to_category, b.move_to_sub)
+
+    @app.post("/api/catalog/sub/add")
+    def sub_add(b: SubAdd):
+        return edit(catalog and catalog.add_sub, b.category, b.name)
+
+    @app.post("/api/catalog/sub/rename")
+    def sub_rename(b: SubRename):
+        return edit(catalog and catalog.rename_sub, b.category, b.name, b.new_name)
+
+    @app.post("/api/catalog/sub/move")
+    def sub_move(b: SubMove):
+        return edit(catalog and catalog.move_sub, b.category, b.name, b.direction)
+
+    @app.post("/api/catalog/sub/delete")
+    def sub_delete(b: SubDelete):
+        return edit(catalog and catalog.delete_sub, b.category, b.name, b.move_to_sub)
 
     return app

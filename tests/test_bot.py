@@ -180,3 +180,45 @@ def test_build_application_handlerlari_baglar():
     handlers = [type(h).__name__ for g in app.handlers.values() for h in g]
     assert handlers.count("CommandHandler") == 2
     assert "CallbackQueryHandler" in handlers and "MessageHandler" in handlers
+
+
+def test_butonlar_sira_degisse_de_dogru_kategoriye_kaydeder(env):
+    run(bot.on_message(_update(YT), env.ctx))
+    pid = next(iter(env.ctx.user_data["pending"]))
+    CATS.items.reverse()  # web'den kategori sırası değişti: 0. indeks artık 'yemek'
+    try:
+        u, q = _cb(f"c|{pid}|0")
+        run(bot.on_callback(u, env.ctx))  # kullanıcı 'diy'ye bastı (eski sıra)
+        u2, q2 = _cb(f"s|{pid}|0|1")  # diy / metin
+        run(bot.on_callback(u2, env.ctx))
+    finally:
+        CATS.items.reverse()
+    row = db.get_item_by_url(env.conn, YT_NORM)
+    assert (row["category"], row["subcategory"]) == ("diy", "metin")
+
+
+def test_secim_sirasinda_kategori_silinirse_yanlis_yere_kaydetmez(env):
+    run(bot.on_message(_update(YT), env.ctx))
+    pid = next(iter(env.ctx.user_data["pending"]))
+    removed = CATS.items.pop(0)  # 'diy' web'den silindi
+    try:
+        u, q = _cb(f"s|{pid}|0|0")
+        run(bot.on_callback(u, env.ctx))
+    finally:
+        CATS.items.insert(0, removed)
+    assert db.list_items(env.conn) == []
+    assert "değişti" in q.edit_message_text.call_args.args[0]
+
+
+def test_kisa_yolda_kategori_yoksa_uyarir(env):
+    CATS.items[0].aliases.append("tmp")
+    try:
+        u = _update(f"{YT} tmp/h")
+    finally:
+        CATS.items[0].aliases.remove("tmp")
+    removed = CATS.items.pop(0)
+    try:
+        run(bot.on_message(u, env.ctx))
+    finally:
+        CATS.items.insert(0, removed)
+    assert db.list_items(env.conn) == []

@@ -54,6 +54,12 @@
       "ad": "v2: ffmpeg ile video birlestirme",
       "durum": "ertelendi",
       "model": "Sonnet 5.5"
+    },
+    {
+      "id": 10,
+      "ad": "Arayuz yeniden tasarimi (tek kategori = tek sayfa) ve kategori/alt baslik yonetimi (ekle, adlandir, sirala, sil)",
+      "durum": "bitti",
+      "model": "Opus 5.5"
     }
   ]
 }

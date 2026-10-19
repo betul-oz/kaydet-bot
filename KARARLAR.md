@@ -21,3 +21,9 @@
 | 17 | 2026-10-19 | Web arayüzünde not/başlık düzenlemesi ekranı yeniden çizmez, kayıtlar sıraya konur, Kopyala ve load() bekleyen kayıtları bekler | Denetçi: eski metin kopyalanabiliyordu (tarayıcıda doğrulandı) |
 | 18 | 2026-10-19 | "Aç" düğmesi yok, yerine "Yolu kopyala" | Tarayıcı http sayfasından file:// açamaz |
 | 19 | 2026-10-19 | Web ve bot tek komutla (`python -m app`); token/ID yoksa yalnızca web açılır | Token olmadan da kullanılabilsin |
+| 20 | 2026-10-19 | Arayüz: sol kategori rayı, kategori başına ayrı sayfa (`#/k/<ad>`), plan kartları `#/planlar`, tüm kategorilerde arama; mobilde ray üstte yatay | Kullanıcı isteği (tek sayfada tek kategori) |
+| 21 | 2026-10-19 | Kategori/alt başlık yönetimi web'den: tek kilit + tek SQLite yazma işlemi (BEGIN IMMEDIATE) + yaml; hata olursa bellek, DB ve yaml geri alınır. Silmede video varsa taşınacak yer zorunlu. Eşleşme harf/İ farkını yok sayar | Denetçi: yarış, çift kaynak (DB/yaml) tutarsızlığı |
+| 22 | 2026-10-19 | `categories.yaml` web'den ilk düzenlemede yeniden yazılır, elle yazılan yorumlar silinir (dosya başında uyarı) | `safe_dump` yorum korumaz; kabul edilen bedel |
+| 23 | 2026-10-19 | Telegram butonları gösterildiği andaki kategori adlarını saklar ve kaydetmeden önce adı yeniden doğrular; kategori değişmişse "linki tekrar gönder" der | Sıra/ad değişince video yanlış yere kaydoluyordu |
+| 24 | 2026-10-19 | Açılışta `reconcile()` harf farklı eski kayıtları düzeltir; tanınmayan kategorili videolar arayüzde "Kategorisiz" sayfasında görünür | Videolar kaybolmasın |
+| 25 | 2026-10-19 | Kategori adı: en çok 40 karakter, `/ | \ < >` ve görünmez/yön değiştiren karakterler yasak | XSS, yanıltıcı adlar |

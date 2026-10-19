@@ -27,3 +27,10 @@
 - `baslat.bat` eklendi (çift tıkla başlat).
 - Not: DB'deki `created_at` UTC (yerel saatten 3 saat geri). Arayüzde yerel saate çevrilebilir (küçük iş).
 - Sıradaki: kullanıcı gerçek kullanımda bulduklarını söyler; **İş 8 (toplu içe aktarma)**; v2: ffmpeg birleştirme. Token sohbette paylaşıldı: kullanıcıya BotFather'da `/revoke` önerildi.
+
+## 2026-10-19 — Oturum 3 (son): arayüz yeniden tasarımı + kategori yönetimi (İş 10)
+- Yapıldı: yeni arayüz (kategori rayı, kategori başına sayfa, küçük resimli dikey kartlar, ⋯ menüleri, diyaloglar, mobil uyum, Türkçe arama, "Kategorisiz" sayfası), kategori/alt başlık ekle-adlandır-sırala-sil (`app/catalog.py`, `/api/catalog/*`), hata sonrası diyalog yazıları korur.
+- Test: 91 geçti. Tarayıcıda denendi (masaüstü + mobil, yönetim akışları, plan kartı + Kopyala, arama). Denetçi bulguları düzeltildi (KARARLAR #21-25): bot buton kayması, harf farkı, kilit dışı kontrol, geri alma, XSS, odak.
+- Gerçek uygulama yeni kodla yeniden başlatıldı (bot + web açık).
+- Bilinen sınırlar: Telegram'dan seçim yaparken web'de tam aynı anda yeniden adlandırma çok dar bir pencerede videoyu eski adla kaydedebilir (açılışta `reconcile` ve "Kategorisiz" sayfası bunu görünür kılar); yeni kategori adı bot kısa yolunda boşluk yerine `_` ile yazılır.
+- Sıradaki: kullanıcı geri bildirimi; **İş 8 (toplu içe aktarma)**; v2: ffmpeg birleştirme.

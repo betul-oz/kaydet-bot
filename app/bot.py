@@ -30,16 +30,21 @@ def _rows(buttons: list[InlineKeyboardButton], per_row: int = 2) -> list[list[In
     return [buttons[i:i + per_row] for i in range(0, len(buttons), per_row)]
 
 
-def category_keyboard(cats: Categories, pid: int) -> InlineKeyboardMarkup:
-    btns = [InlineKeyboardButton(c.name, callback_data=f"c|{pid}|{i}")
-            for i, c in enumerate(cats.items)]
+def snapshot(cats: Categories) -> list[tuple[str, list[str]]]:
+    """Butonlar gösterildiği andaki kategori listesi; sıra/silme sonradan değişse de doğru adı bulmak için."""
+    return [(c.name, [s.name for s in c.subs]) for c in cats.items]
+
+
+def category_keyboard(snap: list, pid: int) -> InlineKeyboardMarkup:
+    btns = [InlineKeyboardButton(name, callback_data=f"c|{pid}|{i}")
+            for i, (name, _subs) in enumerate(snap)]
     rows = _rows(btns) + [[InlineKeyboardButton("İptal", callback_data=f"x|{pid}")]]
     return InlineKeyboardMarkup(rows)
 
 
-def sub_keyboard(cats: Categories, pid: int, ci: int) -> InlineKeyboardMarkup:
-    btns = [InlineKeyboardButton(s.name, callback_data=f"s|{pid}|{ci}|{si}")
-            for si, s in enumerate(cats.items[ci].subs)]
+def sub_keyboard(snap: list, pid: int, ci: int) -> InlineKeyboardMarkup:
+    btns = [InlineKeyboardButton(name, callback_data=f"s|{pid}|{ci}|{si}")
+            for si, name in enumerate(snap[ci][1])]
     rows = _rows(btns) + [[InlineKeyboardButton("‹ Geri", callback_data=f"b|{pid}"),
                            InlineKeyboardButton("İptal", callback_data=f"x|{pid}")]]
     return InlineKeyboardMarkup(rows)
@@ -57,6 +62,9 @@ async def save_parsed(context: ContextTypes.DEFAULT_TYPE, parsed: Parsed,
                       category: str, subcategory: str) -> tuple[bool, str, int]:
     """Kaydeder. (yeni_mi, kayıtlı_adres, id) döner. TikTok kısa linkleri önce çözülür."""
     conn = context.bot_data["conn"]
+    resolved_names = context.bot_data["categories"].resolve(category, subcategory)
+    if resolved_names is None:
+        raise CategoryChanged()
     url = parsed.url
     meta: dict | None = None
     if parsed.platform == "tiktok" and "/video/" not in url:
@@ -64,6 +72,11 @@ async def save_parsed(context: ContextTypes.DEFAULT_TYPE, parsed: Parsed,
         resolved = meta.get("webpage_url", "")
         if resolved and detect_platform(resolved) == "tiktok":
             url = normalize_url(resolved)
+    # TikTok kısa linki çözülürken (await) kategori web'den değişmiş olabilir: eklemeden hemen önce tekrar doğrula
+    resolved_names = context.bot_data["categories"].resolve(category, subcategory)
+    if resolved_names is None:
+        raise CategoryChanged()
+    category, subcategory = resolved_names
     item_id, is_new = db.add_item(conn, url=url, platform=parsed.platform,
                                   category=category, subcategory=subcategory)
     if is_new:
@@ -72,6 +85,13 @@ async def save_parsed(context: ContextTypes.DEFAULT_TYPE, parsed: Parsed,
         if downloader is not None and context.bot_data["config"].auto_download:
             downloader.enqueue(item_id)
     return is_new, url, item_id
+
+
+class CategoryChanged(Exception):
+    """Kategori/alt başlık, kullanıcı seçim yaparken web sayfasından silindi veya yeniden adlandırıldı."""
+
+
+CHANGED_TEXT = "Kategori listesi değişti, bu seçenek artık yok. Linki tekrar gönder."
 
 
 def _dup_text(row) -> str:
@@ -113,7 +133,11 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         await msg.reply_text(_dup_text(existing))
         return
     if parsed.category and parsed.subcategory:
-        is_new, _url, item_id = await save_parsed(context, parsed, parsed.category, parsed.subcategory)
+        try:
+            is_new, _url, item_id = await save_parsed(context, parsed, parsed.category, parsed.subcategory)
+        except CategoryChanged:
+            await msg.reply_text(CHANGED_TEXT)
+            return
         if is_new:
             await msg.reply_text(f"✅ Kaydedildi: {parsed.category} / {parsed.subcategory} (#{item_id})")
         else:
@@ -123,8 +147,9 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     while len(pending) >= MAX_PENDING:
         pending.pop(next(iter(pending)))
     pid = next(_pending_ids)
-    pending[pid] = parsed
-    await msg.reply_text(f"Nereye koyayım?\n{parsed.url}", reply_markup=category_keyboard(cats, pid),
+    snap = snapshot(cats)
+    pending[pid] = {"parsed": parsed, "snap": snap}
+    await msg.reply_text(f"Nereye koyayım?\n{parsed.url}", reply_markup=category_keyboard(snap, pid),
                          disable_web_page_preview=True)
 
 
@@ -132,7 +157,6 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     q = update.callback_query
     if q is None or not is_allowed(q.from_user.id if q.from_user else None, context.bot_data["config"]):
         return
-    cats: Categories = context.bot_data["categories"]
     parts = (q.data or "").split("|")
     try:
         action, pid = parts[0], int(parts[1])
@@ -142,27 +166,33 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await q.answer()
         return
     pending: dict = context.user_data.setdefault("pending", {})
-    parsed: Parsed | None = pending.get(pid)
-    if parsed is None:
+    entry = pending.get(pid)
+    if entry is None:
         await q.answer("Süresi dolmuş, linki tekrar gönder.", show_alert=True)
         return
+    parsed: Parsed = entry["parsed"]
+    snap: list = entry["snap"]
     await q.answer()
     if action == "x":
         pending.pop(pid, None)
         await q.edit_message_text("İptal edildi.")
     elif action == "b":
         await q.edit_message_text(f"Nereye koyayım?\n{parsed.url}",
-                                  reply_markup=category_keyboard(cats, pid),
+                                  reply_markup=category_keyboard(snap, pid),
                                   disable_web_page_preview=True)
-    elif action == "c" and ci is not None and 0 <= ci < len(cats.items):
-        await q.edit_message_text(f"{cats.items[ci].name} içinde hangi başlık?\n{parsed.url}",
-                                  reply_markup=sub_keyboard(cats, pid, ci),
+    elif action == "c" and ci is not None and 0 <= ci < len(snap):
+        await q.edit_message_text(f"{snap[ci][0]} içinde hangi başlık?\n{parsed.url}",
+                                  reply_markup=sub_keyboard(snap, pid, ci),
                                   disable_web_page_preview=True)
     elif (action == "s" and ci is not None and si is not None
-          and 0 <= ci < len(cats.items) and 0 <= si < len(cats.items[ci].subs)):
+          and 0 <= ci < len(snap) and 0 <= si < len(snap[ci][1])):
         pending.pop(pid, None)
-        cat, sub = cats.items[ci].name, cats.items[ci].subs[si].name
-        is_new, _url, item_id = await save_parsed(context, parsed, cat, sub)
+        cat, sub = snap[ci][0], snap[ci][1][si]  # butonların gösterildiği andaki adlar
+        try:
+            is_new, _url, item_id = await save_parsed(context, parsed, cat, sub)
+        except CategoryChanged:
+            await q.edit_message_text(CHANGED_TEXT)
+            return
         if is_new:
             await q.edit_message_text(f"✅ Kaydedildi: {cat} / {sub} (#{item_id})")
         else:
