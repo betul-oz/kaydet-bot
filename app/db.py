@@ -25,6 +25,12 @@ CREATE TABLE IF NOT EXISTS cards (
     note TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS todos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    text TEXT NOT NULL,
+    done INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 CREATE TABLE IF NOT EXISTS card_items (
     card_id INTEGER NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
     item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
@@ -223,3 +229,40 @@ def move_card_item(conn: sqlite3.Connection, card_id: int, item_id: int, directi
                      (pos, card_id, iid))
     conn.commit()
     return True
+
+
+# ---- Genel notlar (todo listesi) ----
+
+def add_todo(conn: sqlite3.Connection, text: str) -> dict:
+    cur = conn.execute("INSERT INTO todos (text) VALUES (?)", (text,))
+    conn.commit()
+    return dict(conn.execute("SELECT * FROM todos WHERE id = ?", (cur.lastrowid,)).fetchone())
+
+
+def list_todos(conn: sqlite3.Connection) -> list[dict]:
+    """Açık olanlar eklenme sırasıyla; tamamlananlar sonra."""
+    return [dict(r) for r in conn.execute("SELECT * FROM todos ORDER BY done, id")]
+
+
+def update_todo(conn: sqlite3.Connection, todo_id: int, *, text: str | None = None,
+                done: bool | None = None) -> dict | None:
+    if conn.execute("SELECT 1 FROM todos WHERE id = ?", (todo_id,)).fetchone() is None:
+        return None
+    if text is not None:
+        conn.execute("UPDATE todos SET text = ? WHERE id = ?", (text, todo_id))
+    if done is not None:
+        conn.execute("UPDATE todos SET done = ? WHERE id = ?", (1 if done else 0, todo_id))
+    conn.commit()
+    return dict(conn.execute("SELECT * FROM todos WHERE id = ?", (todo_id,)).fetchone())
+
+
+def delete_todo(conn: sqlite3.Connection, todo_id: int) -> bool:
+    cur = conn.execute("DELETE FROM todos WHERE id = ?", (todo_id,))
+    conn.commit()
+    return cur.rowcount > 0
+
+
+def clear_done_todos(conn: sqlite3.Connection) -> int:
+    cur = conn.execute("DELETE FROM todos WHERE done = 1")
+    conn.commit()
+    return cur.rowcount

@@ -28,8 +28,10 @@ button,input,select,textarea{font:inherit;color:inherit}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
 /* ---- Düzen ---- */
-.app{display:grid;grid-template-columns:var(--rail) 1fr;min-height:100vh}
-.rail{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:20px 14px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+html,body{height:100%}
+body{overflow:hidden}
+.app{display:grid;grid-template-columns:var(--rail) 1fr;height:100vh;height:100dvh}
+.rail{min-height:0;overflow:auto;padding:20px 14px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
 .brand{font:600 22px var(--head);padding:0 10px 14px}
 .rail nav{display:flex;flex-direction:column;gap:2px}
 .navlink{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;color:var(--ink);text-decoration:none;min-height:40px}
@@ -39,13 +41,13 @@ button,input,select,textarea{font:inherit;color:inherit}
 .navlink .n{margin-left:auto;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
 .rail .sep{height:1px;background:var(--line);margin:10px 4px}
 .rail .grow{flex:1}
-.main{min-width:0}
-.topbar{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);
-  border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;padding:12px 24px;flex-wrap:wrap}
+.main{min-width:0;min-height:0;display:flex;flex-direction:column}
+.topbar{flex:0 0 auto;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;padding:12px 24px;flex-wrap:wrap}
 .field{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:40px}
 .field::placeholder{color:var(--muted)}
 .topbar input[type=search]{flex:1;min-width:180px;max-width:420px}
-.view{padding:24px}
+.view{flex:1;min-height:0;overflow:auto;padding:24px}
+.view.cat{overflow:visible;display:flex;flex-direction:column}
 
 /* ---- Düğmeler ---- */
 .btn{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:10px;
@@ -77,11 +79,11 @@ details.menu>summary:hover,details.menu[open]>summary{background:var(--accent-so
 .pagehead .meta{color:var(--muted)}
 .hint{color:var(--muted);font-size:14px;margin:2px 0 22px}
 .hint code{background:var(--accent-soft);padding:1px 6px;border-radius:6px;font-size:13px}
-/* Sütunlar yan yana dizilir, sığmayanlar alt satıra geçer: yatay kaydırma çubuğu yok, sayfa sadece aşağı kayar */
-.lanes{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px;align-items:start;padding-bottom:16px}
-.lane{min-width:0;background:var(--lane);border:1px solid var(--line);border-radius:16px;padding:10px;min-height:140px}
+/* Sütunlar hep yan yana ve yukarıdan hizalı. Sütun alanı kendi içinde iki yöne kayar; yatay çubuk ekranın en altında sabit */
+.lanes{flex:1;min-height:0;display:flex;gap:14px;align-items:flex-start;overflow:auto;padding:0 4px 14px 0;scrollbar-color:var(--muted) transparent;scrollbar-width:auto}
+.lane{flex:0 0 320px;background:var(--lane);border:1px solid var(--line);border-radius:16px;padding:10px;min-height:140px}
 .lane.over{outline:2px dashed var(--accent);outline-offset:-2px}
-.lanehead{display:flex;align-items:center;gap:8px;padding:2px 2px 10px 6px}
+.lanehead{position:sticky;top:-10px;z-index:2;display:flex;align-items:center;gap:8px;margin:-10px -10px 4px;padding:12px 12px 10px 16px;background:var(--lane);border-radius:16px 16px 0 0}
 .lanehead h3{font-size:16px;flex:1;min-width:0;overflow-wrap:anywhere}
 .lanehead .n{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
 .lane.add{background:none;border:2px dashed var(--line);display:grid;place-items:center;min-height:90px;color:var(--muted);cursor:pointer;font:inherit;text-align:center}
@@ -118,6 +120,23 @@ textarea.note:hover{border-color:var(--line)}
 .vid input{width:100%;margin-top:6px;font-size:14px}
 .newplan{display:flex;gap:8px;margin-bottom:20px}.newplan input{flex:1}
 
+/* ---- Notlar (todo) ---- */
+.notes{max-width:720px}
+.addtodo{display:flex;gap:8px;margin:0 0 18px}.addtodo input{flex:1}
+.todos{list-style:none;margin:0 0 22px;padding:0;display:flex;flex-direction:column;gap:6px}
+.todo{display:flex;gap:8px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 8px}
+.todo-text{flex:1;min-width:0;border:0;background:none;resize:none;padding:6px 6px;font:inherit;line-height:1.45;overflow:hidden;border-radius:6px}
+.todo-text:focus{background:var(--bg)}
+.is-done .todo-text{color:var(--muted);text-decoration:line-through}
+.chk{position:relative;flex:0 0 auto;width:32px;height:32px;display:grid;place-items:center;cursor:pointer}
+.chk input{position:absolute;inset:0;opacity:0;cursor:pointer;margin:0}
+.chk .box{width:20px;height:20px;border:2px solid var(--muted);border-radius:6px;display:grid;place-items:center}
+.chk input:checked+.box{background:var(--accent);border-color:var(--accent)}
+.chk input:checked+.box::after{content:"";width:5px;height:10px;border:solid var(--accent-ink);border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.chk input:focus-visible+.box{outline:2px solid var(--accent);outline-offset:2px}
+.donehead{display:flex;align-items:center;gap:10px;margin:6px 0 10px}
+.donehead h2{font-size:16px}.donehead .n{color:var(--muted);font-size:13px}
+
 /* ---- Diyalog ve bildirim ---- */
 dialog{border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);padding:22px;width:min(440px,92vw)}
 dialog::backdrop{background:rgba(10,8,20,.45)}
@@ -132,15 +151,16 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 
 /* ---- Mobil: ray üstte yatay ---- */
 @media (max-width:860px){
-  .app{display:block}
-  .rail{position:sticky;top:0;z-index:6;height:auto;flex-direction:row;align-items:center;gap:6px;padding:8px 10px;border-right:0;
-    border-bottom:1px solid var(--line);background:var(--bg);overflow-x:auto}
+  .app{display:flex;flex-direction:column}
+  .rail{flex:0 0 auto;flex-direction:row;align-items:center;gap:6px;padding:8px 10px;border-right:0;
+    border-bottom:1px solid var(--line);overflow-x:auto;overflow-y:hidden}
   .brand{display:none} .rail nav{flex-direction:row;gap:4px} .rail .sep,.rail .grow{display:none}
   .navlink{white-space:nowrap;padding:8px 12px;background:var(--surface);border:1px solid var(--line)}
-  .topbar{top:57px;padding:10px 12px} .view{padding:14px 12px}
-  .pagehead h1{font-size:28px}
-  .lanes{grid-template-columns:1fr}
+  .topbar{padding:10px 12px} .view{padding:14px 12px}
+  .pagehead h1{font-size:28px} .view.cat .hint{display:none}
+  .lanes{scroll-snap-type:x proximity} .lane{flex-basis:86vw;scroll-snap-align:start}
 }
+.app[data-view=notes] .topbar,.app[data-view=plans] .topbar{display:none}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -152,6 +172,7 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
     <button class="btn ghost sm" data-act="catadd">+ Yeni kategori</button>
     <div class="sep"></div>
     <nav><a class="navlink" id="plannav" href="#/planlar">Plan kartları <span class="n" id="plancount"></span></a>
+      <a class="navlink" id="notenav" href="#/notlar">Notlar <span class="n" id="notecount"></span></a>
       <a class="navlink" id="orphannav" href="#/kategorisiz" hidden>Kategorisiz <span class="n" id="orphancount"></span></a></nav>
   </aside>
   <div class="main">
@@ -169,7 +190,7 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 
 <script>
 const HUES = ['#E5484D','#E5720B','#C79A00','#2E9E6B','#0D95A6','#3E63DD','#8E4EC6','#CF3F9A'];
-const S = {cats: [], items: [], cards: [], q: '', plat: '', dl: false, saving: Promise.resolve(), sig: '', lastError: ''};
+const S = {cats: [], items: [], cards: [], todos: [], q: '', plat: '', dl: false, saving: Promise.resolve(), sig: '', lastError: ''};
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeUrl = (u) => /^https?:\/\//i.test(u || '') ? u : '#';
@@ -184,7 +205,9 @@ function track(fn) { const p = S.saving.then(fn).catch(() => {}); S.saving = p; 
 const run = (m, u, b) => track(() => api(m, u, b));
 
 async function api(method, url, body) {
-  const r = await fetch(url, {method, headers: body ? {'Content-Type': 'application/json'} : {}, body: body ? JSON.stringify(body) : undefined});
+  let r;
+  try { r = await fetch(url, {method, headers: body ? {'Content-Type': 'application/json'} : {}, body: body ? JSON.stringify(body) : undefined}); }
+  catch (e) { S.lastError = 'Sunucuya ulaşılamadı'; toast('Sunucuya ulaşılamadı. python -m app çalışıyor mu?'); throw e; }
   if (!r.ok) { let m = r.statusText; try { m = (await r.json()).detail || m; } catch (e) {} S.lastError = m; toast(m); throw new Error(m); }
   return (r.headers.get('content-type') || '').includes('json') ? r.json() : r.text();
 }
@@ -193,10 +216,10 @@ function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.ad
 
 async function load(force) {
   await S.saving;
-  const [st, cards] = await Promise.all([api('GET', '/api/state'), api('GET', '/api/cards')]);
-  const sig = JSON.stringify([st, cards]);
+  const [st, cards, todos] = await Promise.all([api('GET', '/api/state'), api('GET', '/api/cards'), api('GET', '/api/todos')]);
+  const sig = JSON.stringify([st, cards, todos]);
   if (sig === S.sig && !force) return;
-  S.sig = sig; S.cats = st.categories; S.items = st.items; S.dl = st.downloads_enabled; S.cards = cards; render();
+  S.sig = sig; S.cats = st.categories; S.items = st.items; S.dl = st.downloads_enabled; S.cards = cards; S.todos = todos; render();
 }
 
 /* ---------- Yönlendirme: #/k/<kategori> | #/planlar ---------- */
@@ -204,11 +227,12 @@ function route() {
   let h = ''; try { h = decodeURIComponent(location.hash || ''); } catch (e) {}
   if (h === '#/planlar') return {view: 'plans'};
   if (h === '#/kategorisiz') return {view: 'orphans'};
+  if (h === '#/notlar') return {view: 'notes'};
   const m = h.match(/^#\/k\/(.+)$/);
   const cat = S.cats.find(c => c.name === (m && m[1])) || S.cats[0];
   return {view: 'cat', cat};
 }
-window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); });
+window.addEventListener('hashchange', () => { render(); const v = $('#view'); v.scrollTop = 0; const l = $('#view .lanes'); if (l) { l.scrollTop = 0; l.scrollLeft = 0; } });
 
 /* ---------- Bileşenler ---------- */
 function itemCard(it, showWhere) {
@@ -248,10 +272,14 @@ function renderNav(r) {
   $('#orphannav').hidden = !o; $('#orphancount').textContent = o || '';
   $('#orphannav').setAttribute('aria-current', r.view === 'orphans' ? 'page' : 'false');
   $('#plannav').setAttribute('aria-current', r.view === 'plans' ? 'page' : 'false');
+  $('#notenav').setAttribute('aria-current', r.view === 'notes' ? 'page' : 'false');
+  $('#notecount').textContent = S.todos.filter(t => !t.done).length || '';
   $('#plancount').textContent = S.cards.length || '';
 }
 
 function renderCategory(cat) {
+  const oldLanes = $('#view .lanes');
+  const keep = oldLanes && oldLanes.dataset.cat === cat.name ? [oldLanes.scrollLeft, oldLanes.scrollTop] : null;
   const total = count(cat.name);
   const ex = cat.subs[0] ? `${cat.name.replace(/ /g, '_')}/${cat.subs[0].replace(/ /g, '_')}` : '';
   const lanes = cat.subs.map((s, si) => {
@@ -277,7 +305,9 @@ function renderCategory(cat) {
         ${S.cats.indexOf(cat) < S.cats.length - 1 ? '<button data-act="catmove" data-dir="1">Listede aşağı taşı</button>' : ''}
         <button class="danger" data-act="catdel">Kategoriyi sil</button></div></details></div>
     <p class="hint">${ex ? `Botta kısa yol: linkin yanına <code>${esc(ex)}</code> yaz, sormadan buraya kaydeder.` : ''}</p>
-    <div class="lanes">${lanes}</div>`;
+    <div class="lanes" data-cat="${esc(cat.name)}" tabindex="0" role="region" aria-label="${esc(cat.name)} alt başlıkları">${lanes}</div>`;
+  const nl = $('#view .lanes');
+  if (keep && nl) { nl.scrollLeft = keep[0]; nl.scrollTop = keep[1]; }  // yeniden çizimde kaydırma yerinde kalsın
 }
 
 function renderSearch() {
@@ -318,12 +348,39 @@ function renderPlans() {
 function render() {
   if (!S.cats.length) return;
   const r = route();
+  document.querySelector('.app').dataset.view = r.view;
+  const hadLanesFocus = document.activeElement === document.querySelector('.lanes');
   renderNav(r);
-  if (S.q || S.plat) {
-    if (r.view === 'plans') renderPlans(); else renderSearch();
-  } else if (r.view === 'plans') renderPlans();
+  const view = $('#view');
+  view.className = 'view';
+  if (r.view === 'plans') renderPlans();
+  else if (r.view === 'notes') renderNotes();
+  else if (S.q || S.plat) renderSearch();
   else if (r.view === 'orphans') renderOrphans();
-  else renderCategory(r.cat);
+  else { view.className = 'view cat'; renderCategory(r.cat); }
+  if (hadLanesFocus) document.querySelector('.lanes')?.focus({preventScroll: true});  // yenilemede odak kaybolmasın
+}
+
+/* ---------- Notlar (todo listesi) ---------- */
+function todoRow(t) {
+  const snip = esc(t.text.length > 40 ? t.text.slice(0, 40) + '…' : t.text);
+  return `<li class="todo ${t.done ? 'is-done' : ''}" data-todo="${t.id}">
+    <label class="chk"><input type="checkbox" data-act="todotoggle" ${t.done ? 'checked' : ''} aria-label="Tamamlandı: ${snip}"><span class="box" aria-hidden="true"></span></label>
+    <textarea class="todo-text" data-act="todotext" rows="1" maxlength="500" aria-label="Not metni">${esc(t.text)}</textarea>
+    <button class="btn sm ghost" data-act="tododel" aria-label="Notu sil: ${snip}">✕</button></li>`;
+}
+function growTodos() { document.querySelectorAll('.todo-text').forEach(el => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }); }
+function renderNotes() {
+  const open = S.todos.filter(t => !t.done), done = S.todos.filter(t => t.done);
+  $('#view').innerHTML = `<div class="notes"><div class="pagehead"><h1 tabindex="-1">Notlar</h1><span class="meta">${open.length} açık</span></div>
+    <p class="hint">Genel notların ve yapılacaklar burada. Bir videoya özel not ise o videonun kartındaki “Not ekle” alanında durur.</p>
+    <form class="addtodo"><label class="sr" for="newtodo">Yeni not</label>
+      <input class="field" id="newtodo" maxlength="500" autocomplete="off" placeholder="Yeni not veya yapılacak yaz, Enter ile ekle"><button class="btn primary" type="submit">Ekle</button></form>
+    ${open.length ? `<ul class="todos" aria-label="Açık notlar">${open.map(todoRow).join('')}</ul>` : '<p class="empty">Açık not yok. Yukarıya bir şey yazıp Enter’a bas.</p>'}
+    ${done.length ? `<div class="donehead"><h2>Tamamlananlar</h2><span class="n">${done.length}</span><span style="flex:1"></span>
+      <button class="btn sm ghost" data-act="todoclear">Tamamlananları temizle</button></div>
+      <ul class="todos" aria-label="Tamamlanan notlar">${done.map(todoRow).join('')}</ul>` : ''}</div>`;
+  growTodos();
 }
 
 /* ---------- Diyalog ---------- */
@@ -430,6 +487,17 @@ document.addEventListener('click', async (e) => {
     return;
   }
 
+  // --- genel notlar ---
+  if (act === 'tododel') {
+    const tid = b.closest('[data-todo]')?.dataset.todo;
+    if (!confirm('Bu not silinsin mi?')) return;
+    await run('DELETE', `/api/todos/${tid}`); await load(true); $('#newtodo')?.focus(); return;
+  }
+  if (act === 'todoclear') {
+    if (!confirm('Tamamlanan tüm notlar silinsin mi?')) return;
+    const rr = await run('POST', '/api/todos/clear-done'); if (rr) toast(`${rr.removed} not silindi`); await load(); return;
+  }
+
   // --- video ve plan kartı işlemleri ---
   if (act === 'dl') { await run('POST', `/api/items/${id}/download`); toast('İndirme sıraya alındı'); }
   else if (act === 'dlsub') { const rr = await run('POST', '/api/download-sub', {category: cat.name, subcategory: sub}); if (rr) toast(`${rr.queued} video sıraya alındı`); }
@@ -442,6 +510,23 @@ document.addEventListener('click', async (e) => {
   await load();
 });
 
+document.addEventListener('submit', async (e) => {
+  if (!e.target.classList.contains('addtodo')) return;
+  e.preventDefault();
+  const inp = $('#newtodo'), text = inp.value.trim();
+  if (!text) { toast('Önce bir şey yaz'); return; }
+  inp.value = '';  // hemen temizle: çift Enter aynı notu iki kez eklemesin, beklerken yazılan yeni metin kaybolmasın
+  const rr = await run('POST', '/api/todos', {text});
+  if (!rr) { const again = $('#newtodo'); if (again && !again.value) again.value = text; return; }  // hata olursa yazılan geri gelir
+  const typed = $('#newtodo') ? $('#newtodo').value : '';
+  await load(true);
+  const box = $('#newtodo'); if (box) { box.value = typed; box.focus(); }
+});
+document.addEventListener('input', (e) => { if (e.target.classList?.contains('todo-text')) { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; } });
+document.addEventListener('keydown', (e) => {
+  // Not metninde Enter kaydeder (alt satır için Shift+Enter)
+  if (e.key === 'Enter' && !e.shiftKey && e.target.classList?.contains('todo-text')) { e.preventDefault(); e.target.dispatchEvent(new Event('change', {bubbles: true})); }
+});
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('details.menu[open]').forEach(d => d.open = false); });
 
 async function copyText(text) {
@@ -455,6 +540,16 @@ document.addEventListener('change', async (e) => {
   const cid = t.closest('[data-card]')?.dataset.card, vid = t.closest('[data-item]')?.dataset.item;
   // Not/başlık düzenlemelerinde ekran yeniden ÇİZİLMEZ (yazdığın alan bozulmasın); sadece kaydedilir
   const saveInPlace = async (body, path) => { const rr = await run('PATCH', path, body); const i = S.cards.findIndex(c => c.id === +cid); if (rr && i >= 0) S.cards[i] = rr; };
+  if (act === 'todotoggle') {
+    const tid = t.closest('[data-todo]').dataset.todo;
+    await run('PATCH', `/api/todos/${tid}`, {done: t.checked}); await load(true);
+    document.querySelector(`[data-todo="${tid}"] [data-act="todotoggle"]`)?.focus(); return;
+  }
+  if (act === 'todotext') {
+    const tid = +t.closest('[data-todo]').dataset.todo, cur = S.todos.find(x => x.id === tid);
+    if (!t.value.trim()) { t.value = cur ? cur.text : ''; growTodos(); return; }  // boş bırakılırsa eski metin kalır
+    const rr = await run('PATCH', `/api/todos/${tid}`, {text: t.value}); if (rr && cur) cur.text = rr.text; return;
+  }
   if (act === 'addcard' && t.value) { await run('POST', `/api/cards/${t.value}/items`, {item_id: +t.dataset.id}); toast('Plan kartına eklendi'); }
   else if (act === 'moveitem' && t.value) {
     const [ci, si] = t.value.split(':').map(Number); const c = S.cats[ci];
@@ -494,6 +589,7 @@ document.addEventListener('drop', async (e) => {
 let qT;
 $('#q').addEventListener('input', (e) => { S.q = e.target.value.trim(); clearTimeout(qT); qT = setTimeout(render, 120); });
 $('#plat').addEventListener('change', (e) => { S.plat = e.target.value; render(); });
+$('#notenav').addEventListener('click', () => { S.q = ''; S.plat = ''; $('#q').value = ''; $('#plat').value = ''; });
 $('#plannav').addEventListener('click', () => { S.q = ''; S.plat = ''; $('#q').value = ''; $('#plat').value = ''; });
 $('#catnav').addEventListener('click', (e) => { if (e.target.closest('a')) { S.q = ''; S.plat = ''; $('#q').value = ''; $('#plat').value = ''; } });
 

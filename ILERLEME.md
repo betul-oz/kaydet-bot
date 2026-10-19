@@ -34,3 +34,9 @@
 - Gerçek uygulama yeni kodla yeniden başlatıldı (bot + web açık).
 - Bilinen sınırlar: Telegram'dan seçim yaparken web'de tam aynı anda yeniden adlandırma çok dar bir pencerede videoyu eski adla kaydedebilir (açılışta `reconcile` ve "Kategorisiz" sayfası bunu görünür kılar); yeni kategori adı bot kısa yolunda boşluk yerine `_` ile yazılır.
 - Sıradaki: kullanıcı geri bildirimi; **İş 8 (toplu içe aktarma)**; v2: ffmpeg birleştirme.
+
+## 2026-10-19 — Oturum 3 (son): Notlar sayfası + yeni yerleşim
+- Yapıldı: "Notlar" sayfası (todo listesi, `todos` tablosu, `/api/todos`), sütunlar tek satırda yan yana/yukarıdan hizalı, sayfa kaymaz, sütun alanı iki yöne kayar ve yatay çubuk ekranın altında (KARARLAR #27-29, #26'yı değiştirir). Denetçi bulguları düzeltildi: çift gönderim, sayfa değişince kaydırma, kırpılan menü, odak, aria etiketleri, ağ hatası.
+- Test: 98 geçti; tarayıcıda 25 videolu sahte veriyle (masaüstü + mobil) denendi, gerçek veriye dokunulmadı. Gerçek uygulama yeni kodla çalışıyor.
+- Bilinen sınırlar: sürüklerken kenarda otomatik kaydırma tarayıcının yerel davranışına bırakıldı (denenmedi); ön yüz için otomatik test yok (elle tarayıcıda denendi).
+- Sıradaki: kullanıcı geri bildirimi; İş 8 (toplu içe aktarma); v2: ffmpeg birleştirme.

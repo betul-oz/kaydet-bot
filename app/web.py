@@ -55,6 +55,15 @@ class CardItemPatch(BaseModel):
     move: int | None = Field(None, description="-1 yukarı, 1 aşağı")
 
 
+class TodoCreate(BaseModel):
+    text: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+
+
+class TodoPatch(BaseModel):
+    text: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)] | None = None
+    done: bool | None = None
+
+
 class CatAdd(BaseModel):
     name: str = Field(max_length=200)
     first_sub: str = Field(max_length=200)
@@ -231,6 +240,37 @@ def create_app(config: Config, categories: Categories,
         if card is None:
             raise HTTPException(404, "Kart yok")
         return format_card(card)
+
+    # ---- Genel notlar (todo) ----
+    @app.get("/api/todos")
+    def todos():
+        with conn() as c:
+            return db.list_todos(c)
+
+    @app.post("/api/todos", status_code=201)
+    def todo_add(body: TodoCreate):
+        with conn() as c:
+            return db.add_todo(c, body.text)
+
+    @app.post("/api/todos/clear-done")
+    def todo_clear_done():
+        with conn() as c:
+            return {"removed": db.clear_done_todos(c)}
+
+    @app.patch("/api/todos/{todo_id}")
+    def todo_patch(todo_id: int, body: TodoPatch):
+        with conn() as c:
+            row = db.update_todo(c, todo_id, text=body.text, done=body.done)
+        if row is None:
+            raise HTTPException(404, "Not yok")
+        return row
+
+    @app.delete("/api/todos/{todo_id}")
+    def todo_delete(todo_id: int):
+        with conn() as c:
+            if not db.delete_todo(c, todo_id):
+                raise HTTPException(404, "Not yok")
+        return {"ok": True}
 
     # ---- Kategori / alt başlık yönetimi ----
     def edit(fn, *args):
