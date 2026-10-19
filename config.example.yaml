@@ -1,0 +1,6 @@
+# Bu dosyayı config.yaml olarak kopyala.
+# Telegram kullanıcı ID'ni @userinfobot'tan öğrenebilirsin. Liste boşsa bot kimseye cevap vermez.
+allowed_user_ids: []
+auto_download: false
+downloads_dir: downloads
+db_path: kaydet.db

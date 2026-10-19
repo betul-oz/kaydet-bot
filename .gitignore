@@ -1,0 +1,12 @@
+.env
+config.yaml
+categories.yaml
+*.db
+downloads/
+__pycache__/
+.pytest_cache/
+.venv/
+*.db*
+*.sqlite*
+.env.*
+!.env.example

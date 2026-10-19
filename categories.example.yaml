@@ -1,0 +1,15 @@
+# Kendi kategorilerini tanımla: bu dosyayı categories.yaml olarak kopyala.
+# Bota "link diy/hook" yazarsan sormadan kaydeder. "aliases" takma adlardır (örn. "d/h").
+categories:
+  - name: diy
+    aliases: [d]
+    subcategories:
+      - name: hook
+        aliases: [h]
+      - name: metin
+        aliases: [m]
+      - name: gecis
+  - name: yemek
+    subcategories:
+      - tarif
+      - mekan
