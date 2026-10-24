@@ -1,5 +1,11 @@
 # ILERLEME
 
+## 2026-10-24 - Oturum 5: İş 20 bitti (Video inceleme arayüzü)
+- Yapıldı: "Videolar" modu (`#/izle`): oynatıcı, durdurunca/yazmaya başlayınca tam ana zaman damgalı not, zaman çizgisinde işaret, ±0,1/1 sn adım, hız, kısayollar, sürüm geçmişi, altta "Değişikliğe başla" (KARARLAR #39-42). `app/review.py`, `izle.py` (her klasörden çalışır), `/api/review/*`. Kural global CLAUDE.md'ye ve proje CLAUDE.md'ye yazıldı.
+- Test: 128 geçti (10 yeni). Denetçi (Opus) bulguları düzeltildi: açık sayfanın yeni sürüme geçmesi, çift Enter, revizyonda not/onay kilidi, atomik revizyon talebi, pano işi senkronu, 60 sn taşması, yol çözümleme, medya gömme engeli. Tarayıcıda izole veriyle denendi: yatay + short, not ekleme (Enter), revizyon isteme, CLI ile yeni sürüm, açık sayfanın otomatik yeni sürüme geçmesi.
+- Sınır: "Değişikliğe başla" videoyu kendiliğinden üretmez; revizyonu kaydeder, ben bir oturumda `python izle.py bekleyen` ile okuyup yaparım (KARARLAR #41). Tam otomatik için başsız `claude -p` ayrı iş olabilir.
+- Gerçek uygulamayı yeniden başlat (baslat.bat) ki yeni sayfa açılsın. Gerçek DB'ye test verisi girmedi.
+
 ## 2026-10-24 - Oturum 4 (devam): İş 19 bitti
 - Yapıldı: Kanal tabloları (platform başına), İş panosu (iş durumu + mesajlar), 2 haftalık dönem ve bitişe 5 gün kala Telegram hatırlatıcısı (KARARLAR #36-38). Claude komutları: `python -m app.board add|durum|say`.
 - Test: 118 geçti. Tarayıcıda izole veriyle görüldü. Denetçi (Opus) bulguları düzeltildi: kısmi Telegram gönderiminde saat başı tekrar, 4 sn yenilemede kaybolan yazı, yanlış dönem afişi, UTC saat, son tarih biçimi, çift gönderim. Telegram gönderimi gerçek bota denenmedi (mantık sahte gönderici ile test edildi).

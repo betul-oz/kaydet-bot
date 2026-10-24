@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, StringConstraints
 
-from . import analytics, board, db
+from . import analytics, board, db, review
 from .cards import format_card
 from .catalog import Catalog, CatalogError
 from .config import Categories, Config
@@ -131,6 +131,16 @@ class TaskPatch(BaseModel):
 class MessageAdd(BaseModel):
     text: str = Field(max_length=2000)
     author: str = Field("sen", max_length=10)
+
+
+class NoteAdd(BaseModel):
+    version_id: int
+    t: float = Field(ge=0, le=86400)
+    text: str = Field(max_length=2000)
+
+
+class NoteEdit(BaseModel):
+    text: str = Field(max_length=2000)
 
 
 class BatchAdd(BaseModel):
@@ -412,6 +422,78 @@ def create_app(config: Config, categories: Categories,
             if not board.delete_batch(c, batch_id):
                 raise HTTPException(404, "Dönem yok")
             return board.overview(c)
+
+    # ---- Video inceleme (zaman damgalı not + revizyon talebi) ----
+    def review_call(fn, *args, **kw):
+        try:
+            return fn(*args, **kw)
+        except review.ReviewError as e:
+            raise HTTPException(e.status, str(e))
+
+    @app.get("/api/review/videos")
+    def review_list():
+        with conn() as c:
+            return review.list_videos(c)
+
+    @app.get("/api/review/videos/{video_id}")
+    def review_get(video_id: int):
+        with conn() as c:
+            return review_call(review.get_video, c, video_id)
+
+    @app.get("/api/review/media/{version_id}")
+    def review_media(version_id: int, request: Request):
+        if request.headers.get("sec-fetch-site") == "cross-site":
+            raise HTTPException(403, "Başka siteden gömülemez")
+        # Yalnızca CLI ile kaydedilmiş sürümlerin dosyası; Range desteği oynatıcıda ileri/geri sarma için gerekli
+        with conn() as c:
+            path = review_call(review.media_path, c, version_id)
+        if not Path(path).is_file():
+            raise HTTPException(404, "Video dosyası bulunamadı (taşınmış veya silinmiş olabilir)")
+        return FileResponse(path, headers={"Cache-Control": "no-store"})
+
+    @app.post("/api/review/notes", status_code=201)
+    def review_note_add(body: NoteAdd):
+        with conn() as c:
+            review_call(review.add_note, c, body.version_id, body.t, body.text)
+            vid = c.execute("SELECT video_id FROM rv_versions WHERE id = ?", (body.version_id,)).fetchone()["video_id"]
+            return review.get_video(c, vid)
+
+    @app.patch("/api/review/notes/{note_id}")
+    def review_note_edit(note_id: int, body: NoteEdit):
+        with conn() as c:
+            review_call(review.edit_note, c, note_id, body.text)
+            return {"ok": True}
+
+    @app.delete("/api/review/notes/{note_id}")
+    def review_note_delete(note_id: int):
+        with conn() as c:
+            review_call(review.delete_note, c, note_id)
+            return {"ok": True}
+
+    @app.post("/api/review/videos/{video_id}/revise")
+    def review_revise(video_id: int):
+        with conn() as c:
+            prompt = review_call(review.request_revision, c, video_id)
+            return {"prompt": prompt, "video": review.get_video(c, video_id)}
+
+    @app.get("/api/review/videos/{video_id}/prompt", response_class=PlainTextResponse)
+    def review_prompt(video_id: int):
+        with conn() as c:
+            review_call(review.get_video, c, video_id)
+            return review.revision_prompt(c, video_id)
+
+    @app.post("/api/review/videos/{video_id}/approve")
+    def review_approve(video_id: int):
+        with conn() as c:
+            review_call(review.approve, c, video_id)
+            return review.get_video(c, video_id)
+
+    @app.delete("/api/review/videos/{video_id}")
+    def review_delete(video_id: int):
+        with conn() as c:
+            if not review.delete_video(c, video_id):
+                raise HTTPException(404, "Video yok")
+            return {"ok": True}
 
     # ---- Kategori / alt başlık yönetimi ----
     def edit(fn, *args):

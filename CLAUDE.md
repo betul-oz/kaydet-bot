@@ -11,3 +11,8 @@ Instagram/TikTok/YouTube'da kaydedilen videoları Telegram botuyla kategorileyen
 - Analiz modülü: `docs/SPEC-ANALIZ.md`, `app/analytics.py`. Hesap/metrik verisi yalnızca yerel DB'de; public repoya marka verisi, token, çerez girmez.
 - Her iş sonunda: test -> commit -> `git push` (GitHub'a kayıt kullanıcı kuralı).
 - İş panosu: oturum sonunda yaptığım/başlattığım işleri `python -m app.board durum <id> <durum>` ve `say` ile panoya yaz; oturum başında panodaki kullanıcı notlarını oku (`/api/board` ya da DB).
+
+## Video inceleme kuralı (KARARLAR #40)
+- Bu hesapta (hangi proje olursa olsun) üretilen her video bitince: `python C:\Users\ozkan\Desktop\smDataAnalyze\izle.py ekle <dosya> --baslik "..." --format yatay|short [--marka X --platform youtube --proje <klasör>]`. Çıkan `#/izle/<id>` adresini kullanıcıya ver.
+- Oturum başında `python izle.py bekleyen`: "Değişikliğe başla" denmiş videoların zaman damgalı notlarını yazar. Notlara göre yeniden üret, sonra `python izle.py yeni-surum <id> <yeni dosya>`.
+- Uygulama kapalıysa `baslat.bat` ile aç; kayıt DB'ye düşer, uygulama açılınca görünür.

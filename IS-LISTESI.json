@@ -114,6 +114,12 @@
       "ad": "Kanal tablolari (platform basina), Is panosu (sen-Claude is takibi, mesajlar), 2 haftalik donem + bitise 5 gun kala Telegram hatirlatici",
       "durum": "bitti",
       "model": "Opus 5.5"
+    },
+    {
+      "id": 20,
+      "ad": "Video inceleme arayuzu (#/izle): izle, tam ana zaman damgali not, Degisiklige basla -> revizyon istemi + is panosu; uretilen her video CLI ile buraya kaydolur",
+      "durum": "bitti",
+      "model": "Opus 5.5"
     }
   ]
 }

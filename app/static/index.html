@@ -161,7 +161,7 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
   .lanes{scroll-snap-type:x proximity} .lane{flex-basis:86vw;scroll-snap-align:start}
 }
 .app[data-view=notes] #q,.app[data-view=notes] #plat,.app[data-view=plans] #q,.app[data-view=plans] #plat,
-.app[data-mode=analiz] #q,.app[data-mode=analiz] #plat{display:none}
+.app[data-mode=analiz] #q,.app[data-mode=analiz] #plat,.app[data-mode=izle] #q,.app[data-mode=izle] #plat{display:none}
 .modeswitch{margin-left:auto;display:inline-flex;background:var(--lane);border:1px solid var(--line);border-radius:999px;padding:3px}
 .modeswitch a{padding:6px 16px;border-radius:999px;text-decoration:none;color:var(--muted);min-height:32px;display:inline-flex;align-items:center}
 .modeswitch a[aria-current=true]{background:var(--accent);color:var(--accent-ink);font-weight:600}
@@ -202,6 +202,36 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 .msg{font-size:14px}.msg .who{font-weight:600;margin-right:6px}.msg.claude .who{color:var(--accent)}.msg.sistem{color:var(--muted)}.msg time{color:var(--muted);font-size:12px;margin-left:6px}
 .sendmsg{display:flex;gap:8px;margin-top:8px}.sendmsg input{flex:1}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* ---- Video inceleme ---- */
+.rvlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:14px}
+.rvcard{display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;color:var(--ink);text-decoration:none}
+.rvcard:hover{border-color:var(--accent)}.rvcard b{overflow-wrap:anywhere}.rvcard .stat{color:var(--muted);font-size:13px}
+.rvst{display:inline-flex;align-items:center;border-radius:999px;padding:1px 10px;font-size:12px;font-weight:600;background:var(--accent-soft);color:var(--accent)}
+.rvst.revizyon{background:#FFF1D6;color:var(--warn)}.rvst.onaylandi{background:#DDF3E8;color:var(--ok)}
+@media (prefers-color-scheme: dark){.rvst.revizyon{background:#3A2C10}.rvst.onaylandi{background:#173326}}
+.rvgrid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start;margin-top:12px}
+@media (max-width:900px){.rvgrid{grid-template-columns:minmax(0,1fr)}}
+.rvframe{background:#000;border-radius:14px;overflow:hidden;display:flex;justify-content:center}
+.rvframe video{display:block;width:100%;max-height:68vh;background:#000}
+.rv.short .rvframe video{width:auto;max-width:100%;height:68vh;aspect-ratio:9/16}
+.rvtrack{position:relative;height:22px;margin:10px 2px 0;background:var(--lane);border-radius:999px;cursor:pointer}
+.rvtrack i{position:absolute;top:3px;width:4px;height:16px;margin-left:-2px;border-radius:2px;background:var(--accent)}
+.rvtrack i.now{background:var(--danger);width:2px;margin-left:-1px;top:0;height:22px}
+.rvstep{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.rvstep .grow{flex:1}.rvstep output{font:600 16px var(--head);min-width:70px;text-align:center}
+.rvform{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}
+.rvform textarea{width:100%;resize:vertical;min-height:64px}.rvform .row{display:flex;gap:10px;align-items:center}
+.rvform .tm{font:600 15px var(--head);color:var(--accent)}.rvform .row .grow{flex:1;color:var(--muted);font-size:13px}
+.rvnotes{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 220px);overflow:auto}
+.rvnotes h2{font-size:16px}.rvnote{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:start;border-top:1px solid var(--line);padding-top:8px}
+.rvnote textarea{width:100%;resize:vertical;min-height:38px;background:transparent;border:1px solid transparent;border-radius:8px;padding:4px 6px}
+.rvnote textarea:hover,.rvnote textarea:focus{border-color:var(--line)}.rvnote p{margin:0;padding:4px 6px;overflow-wrap:anywhere}
+.rvts{font-weight:600;color:var(--accent);background:var(--accent-soft);border:0;border-radius:8px;padding:4px 8px;cursor:pointer;min-height:30px}
+.rvbar{position:sticky;bottom:0;margin:18px -24px -24px;padding:12px 24px;background:var(--surface);border-top:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap;z-index:5}
+.rvbar .grow{flex:1;min-width:180px}.rvbar .go{min-height:44px;padding:8px 22px;font-size:16px}
+@media (max-width:700px){.rvbar{margin:14px -12px -14px;padding:10px 12px}}
+.rvhelp{color:var(--muted);font-size:13px;margin-top:6px}.rvhelp kbd{background:var(--lane);border:1px solid var(--line);border-radius:5px;padding:0 5px}
 </style>
 </head>
 <body>
@@ -221,7 +251,7 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
       <input class="field" type="search" id="q" placeholder="Tüm kategorilerde ara…">
       <label class="sr" for="plat">Platform</label>
       <select class="field" id="plat"><option value="">Tüm platformlar</option><option>instagram</option><option>tiktok</option><option>youtube</option></select>
-      <nav class="modeswitch" aria-label="Görünüm"><a href="#/" id="swkaydet">Kaydet</a><a href="#/analiz" id="swanaliz">Analiz</a></nav>
+      <nav class="modeswitch" aria-label="Görünüm"><a href="#/" id="swkaydet">Kaydet</a><a href="#/analiz" id="swanaliz">Analiz</a><a href="#/izle" id="swizle">Videolar</a></nav>
     </header>
     <main class="view" id="view"></main>
   </div>
@@ -267,6 +297,8 @@ async function load(force) {
 function route() {
   let h = ''; try { h = decodeURIComponent(location.hash || ''); } catch (e) {}
   if (h === '#/analiz' || h.startsWith('#/analiz/')) return {view: 'analytics', brand: h.slice(9).replace(/^\//, '')};
+  if (h === '#/izle') return {view: 'reviews'};
+  const rm = h.match(/^#\/izle\/(\d+)$/); if (rm) return {view: 'reviewer', id: +rm[1]};
   if (h === '#/kanallar') return {view: 'channels'};
   if (h === '#/pano') return {view: 'board'};
   if (h === '#/planlar') return {view: 'plans'};
@@ -310,9 +342,11 @@ const matches = (it) => (!S.plat || it.platform === S.plat) &&
   (!S.q || [it.title, it.note, it.url, it.category, it.subcategory].some(v => fold(v).includes(fold(S.q))));
 
 function renderNav(r) {
-  const an = ['analytics', 'channels', 'board'].includes(r.view);
-  $('#swkaydet').setAttribute('aria-current', String(!an)); $('#swanaliz').setAttribute('aria-current', String(an));
-  $('#catadd').hidden = an; $('#extranav').hidden = an;
+  const iz = ['reviews', 'reviewer'].includes(r.view), an = ['analytics', 'channels', 'board'].includes(r.view);
+  $('#swkaydet').setAttribute('aria-current', String(!an && !iz)); $('#swanaliz').setAttribute('aria-current', String(an));
+  $('#swizle').setAttribute('aria-current', String(iz));
+  $('#catadd').hidden = an || iz; $('#extranav').hidden = an || iz;
+  if (iz) { renderReviewNav(r); return; }
   if (an) {
     const bs = (S.an && S.an.brands) || [];
     const bd = S.board && S.board.tasks.filter(t => t.status !== 'yuklendi').length;
@@ -405,7 +439,7 @@ function render() {
   if (!S.cats.length) return;
   const r = route();
   document.querySelector('.app').dataset.view = r.view;
-  document.querySelector('.app').dataset.mode = ['analytics', 'channels', 'board'].includes(r.view) ? 'analiz' : 'kaydet';
+  document.querySelector('.app').dataset.mode = ['analytics', 'channels', 'board'].includes(r.view) ? 'analiz' : ['reviews', 'reviewer'].includes(r.view) ? 'izle' : 'kaydet';
   const hadLanesFocus = document.activeElement === document.querySelector('.lanes');
   renderNav(r);
   const view = $('#view');
@@ -413,6 +447,8 @@ function render() {
   if (r.view === 'analytics') renderAnalytics(r);
   else if (r.view === 'channels') renderChannels();
   else if (r.view === 'board') renderBoard();
+  else if (r.view === 'reviews') renderReviews();
+  else if (r.view === 'reviewer') renderReviewer(r);
   else if (r.view === 'plans') renderPlans();
   else if (r.view === 'notes') renderNotes();
   else if (S.q || S.plat) renderSearch();
@@ -783,6 +819,183 @@ document.addEventListener('drop', async (e) => {
   await load();
 });
 
+/* ---------- Video inceleme: izle, tam ana not düş, "Değişikliğe başla" ---------- */
+const RVST = {inceleme: 'İncelemede', revizyon: 'Revizyon bekliyor', onaylandi: 'Onaylandı'};
+const RVK = {yatay: 'Yatay', short: 'Short'};
+S.rv = {list: null, sig: '', cur: null, ver: 0, key: '', hold: null, dur: 0};
+const tfmt = (t) => { t = Math.round(Math.max(0, +t || 0) * 10) / 10; const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1); };
+async function loadReviewList(force) {
+  const l = await api('GET', '/api/review/videos'), sig = JSON.stringify(l);
+  const changed = sig !== S.rv.sig || force;
+  S.rv.list = l; S.rv.sig = sig;
+  const r = route();
+  if (changed) { if (r.view === 'reviews' || (r.view === 'reviewer' && !$('.rv'))) render(); else renderNav(r); }
+  // Claude yeni sürüm yüklediyse veya durum değiştiyse (yazı yazmıyor/oynatmıyorsan) sayfayı tazele
+  const cur = S.rv.cur, ent = cur && l.find(x => x.id === cur.id), vd = rvVideo();
+  if (r.view === 'reviewer' && ent && (ent.version_n !== cur.versions[cur.versions.length - 1].n || ent.status !== cur.status) &&
+      !($('#rvtext') && $('#rvtext').value.trim()) && !(vd && !vd.paused)) {
+    api('GET', `/api/review/videos/${cur.id}`).then(v => { if (S.rv.cur && S.rv.cur.id === v.id) { S.rv.cur = v; S.rv.ver = v.versions.length - 1; drawReviewer(); if (ent.version_n > 1) toast('Yeni sürüm hazır'); } }).catch(() => {});
+  }
+}
+function renderReviewNav(r) {
+  const l = S.rv.list || [];
+  $('#catnav').innerHTML = `<a class="navlink" href="#/izle" ${r.view === 'reviews' ? 'aria-current="page"' : ''}>Tüm videolar<span class="n">${l.length || ''}</span></a><div class="sep"></div>` +
+    l.map(v => `<a class="navlink" href="#/izle/${v.id}" ${r.view === 'reviewer' && r.id === v.id ? 'aria-current="page"' : ''}><span class="dot" style="background:${v.status === 'onaylandi' ? 'var(--ok)' : v.status === 'revizyon' ? 'var(--warn)' : 'var(--accent)'}"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(v.title)}</span></a>`).join('');
+  if (!S.rv.list && !S.rv.loading) { S.rv.loading = true; loadReviewList(true).catch(() => {}).finally(() => { S.rv.loading = false; }); }
+}
+function renderReviews() {
+  const l = S.rv.list;
+  if (!l) { $('#view').innerHTML = '<p class="empty">Yükleniyor…</p>'; return; }
+  const open = l.filter(v => v.status !== 'onaylandi').length;
+  $('#view').innerHTML = `<div class="an"><div class="pagehead"><h1 tabindex="-1">Videolar</h1><span class="meta">${open} incelenecek</span></div>
+    <p class="hint">Claude’un ürettiği her video burada açılır. Videoyu izle, değiştirmek istediğin yerde durdurup o ana not yaz, bitince en alttaki “Değişikliğe başla”ya bas.</p>
+    ${l.length ? `<div class="rvlist">${l.map(v => `<a class="rvcard" href="#/izle/${v.id}"><span><span class="rvst ${esc(v.status)}">${esc(RVST[v.status] || v.status)}</span></span>
+      <b>${esc(v.title)}</b><span class="stat">${esc([v.brand, RVK[v.kind], v.platform && (PLAT[v.platform] || v.platform), 'sürüm ' + v.version_n, v.note_count + ' not'].filter(Boolean).join(' · '))}</span></a>`).join('')}</div>`
+      : '<p class="empty">Henüz video yok. Claude bir video ürettiğinde burada otomatik görünür.</p>'}</div>`;
+}
+function renderReviewer(r) {
+  const key = 'v' + r.id;
+  if (S.rv.key === key && S.rv.cur && $('.rv')) return;  // oynatma/yazma sürerken yeniden çizme
+  S.rv.key = key; S.rv.cur = null; S.rv.hold = null;
+  $('#view').innerHTML = '<p class="empty">Yükleniyor…</p>';
+  api('GET', `/api/review/videos/${r.id}`).then(v => { if (S.rv.key !== key) return; S.rv.cur = v; S.rv.ver = v.versions.length - 1; drawReviewer(); })
+    .catch(() => { if (S.rv.key === key) $('#view').innerHTML = '<p class="empty">Video bulunamadı. <a href="#/izle">Listeye dön</a></p>'; });
+}
+const rvVideo = () => $('#rvplayer');
+const rvLatest = () => S.rv.cur && S.rv.ver === S.rv.cur.versions.length - 1;
+function drawReviewer() {
+  const v = S.rv.cur, ver = v.versions[S.rv.ver], latest = rvLatest(), locked = !latest || v.status === 'revizyon';
+  $('#view').innerHTML = `<div class="rv ${esc(v.kind)}"><div class="pagehead"><a class="btn sm ghost" href="#/izle">← Videolar</a><h1 tabindex="-1">${esc(v.title)}</h1>
+      <span class="rvst ${esc(v.status)}">${esc(RVST[v.status] || v.status)}</span>
+      <span class="meta">${esc([v.brand, RVK[v.kind], v.platform && (PLAT[v.platform] || v.platform)].filter(Boolean).join(' · '))}</span></div>
+    <div id="rvbanner"></div>
+    <div class="rvgrid"><div>
+      <div class="rvframe">${ver.exists ? `<video id="rvplayer" src="/api/review/media/${ver.id}" controls preload="metadata" playsinline></video>` : '<p class="empty" style="color:#fff">Video dosyası bulunamadı (taşınmış veya silinmiş).</p>'}</div>
+      <div class="rvtrack" id="rvtrack" aria-label="Zaman çizgisi: notlar işaretli"></div>
+      <div class="rvstep"><button class="btn sm" data-rv="step" data-d="-1">−1 sn</button><button class="btn sm" data-rv="step" data-d="-0.1">−0,1</button>
+        <output id="rvnow">0:00.0</output><button class="btn sm" data-rv="step" data-d="0.1">+0,1</button><button class="btn sm" data-rv="step" data-d="1">+1 sn</button>
+        <span class="grow"></span><label class="sr" for="rvrate">Hız</label><select class="field" id="rvrate" data-rv="rate" style="min-height:32px;padding:2px 8px"><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="1.5">1,5×</option><option value="2">2×</option></select></div>
+      ${locked ? '' : `<form class="rvform" data-rv="form"><div class="row"><span class="tm">⏱ <span id="rvtm">0:00.0</span></span><span class="grow" id="rvtmhint">Yazmaya başlayınca video durur, not o ana bağlanır</span></div>
+        <label class="sr" for="rvtext">Bu ana not</label><textarea class="field" id="rvtext" maxlength="2000" placeholder="Bu anda ne değişsin? (Enter: ekle · Shift+Enter: yeni satır)"></textarea>
+        <div class="row"><span class="grow"></span><button class="btn primary" type="submit">Bu ana not ekle</button></div></form>`}
+      <p class="rvhelp"><kbd>Boşluk</kbd> oynat/durdur · <kbd>N</kbd> not yaz · <kbd>←</kbd><kbd>→</kbd> 1 sn · <kbd>Shift</kbd>+ok 0,1 sn</p>
+    </div>
+    <aside class="rvnotes" aria-label="Notlar"><div id="rvvers"></div><div id="rvnotelist"></div></aside></div>
+    <div class="rvbar" id="rvbar"></div></div>`;
+  S.rv.dur = 0; drawReviewNotes();
+  const vd = rvVideo();
+  if (vd) {
+    vd.addEventListener('loadedmetadata', () => { S.rv.dur = vd.duration || 0; drawTrack(); });
+    vd.addEventListener('timeupdate', rvTick); vd.addEventListener('seeked', rvTick);
+    vd.addEventListener('play', () => { S.rv.hold = null; rvTick(); });
+    vd.addEventListener('error', () => toast('Video yüklenemedi (biçim desteklenmiyor veya dosya yok)'));
+  }
+  const ta = $('#rvtext');
+  if (ta) {
+    ta.addEventListener('focus', () => { if (vd) { vd.pause(); S.rv.hold = vd.currentTime; rvTick(); } });
+    ta.addEventListener('blur', () => { if (!ta.value.trim()) { S.rv.hold = null; rvTick(); } });
+    ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('[data-rv=form]').requestSubmit(); } });
+  }
+  $('#view h1').focus({preventScroll: true});
+}
+function rvTick() {
+  const vd = rvVideo(); if (!vd) return;
+  const t = S.rv.hold !== null ? S.rv.hold : vd.currentTime;
+  const a = $('#rvnow'), b = $('#rvtm'); if (a) a.textContent = tfmt(vd.currentTime); if (b) b.textContent = tfmt(t);
+  const h = $('#rvtmhint'); if (h) h.textContent = S.rv.hold !== null ? 'Not bu ana bağlanacak' : 'Yazmaya başlayınca video durur, not o ana bağlanır';
+  const now = $('#rvtrack i.now'); if (now && S.rv.dur) now.style.left = (vd.currentTime / S.rv.dur * 100) + '%';
+}
+function drawTrack() {
+  const el = $('#rvtrack'); if (!el) return;
+  const ver = S.rv.cur.versions[S.rv.ver], d = S.rv.dur;
+  el.innerHTML = d ? ver.notes.map(n => `<i style="left:${Math.min(100, n.t / d * 100)}%" title="${esc(tfmt(n.t))}"></i>`).join('') + '<i class="now" style="left:0"></i>' : '';
+  rvTick();
+}
+function drawReviewMeta() {
+  const v = S.rv.cur, ver = v.versions[S.rv.ver], latest = rvLatest(), n = ver.notes.length;
+  $('#rvvers').innerHTML = v.versions.length > 1 ? `<label class="sr" for="rvver">Sürüm</label><select class="field" id="rvver" data-rv="ver">${v.versions.map((x, i) => `<option value="${i}" ${i === S.rv.ver ? 'selected' : ''}>Sürüm ${x.n}${i === v.versions.length - 1 ? ' (son)' : ''} · ${x.notes.length} not</option>`).join('')}</select>` : '';
+  $('#rvbanner').innerHTML = v.status === 'revizyon' ? `<div class="banner son"><div class="grow"><b>Revizyon istendi.</b> Claude’u aç ve “bekleyen revizyonları yap” de; bitince yeni sürüm bu sayfada çıkar. (İstersen istemi kopyalayıp yapıştır.)</div><button class="btn sm" data-rv="copyprompt">İstemi kopyala</button></div>`
+    : !latest ? `<div class="banner"><div class="grow">Eski sürümü izliyorsun (salt okunur). Yeni notlar yalnızca son sürüme eklenir.</div><button class="btn sm" data-rv="last">Son sürüme git</button></div>` : '';
+  $('#rvbar').innerHTML = v.status === 'revizyon' ? `<span class="grow"><b>${n}</b> notla revizyon bekliyor</span><button class="btn" data-rv="copyprompt">İstemi kopyala</button>`
+    : !latest ? `<span class="grow">Eski sürüm</span><button class="btn" data-rv="last">Son sürüme git</button>`
+    : `<span class="grow"><b>${n}</b> not${v.status === 'onaylandi' ? ' · onaylandı' : ''}</span>${v.status === 'onaylandi' || n ? '' : `<button class="btn ghost" data-rv="approve">Notsuz onayla</button>`}
+       <button class="btn primary go" data-rv="go" ${n ? '' : 'disabled'}>Değişikliğe başla</button>`;
+}
+function drawReviewNotes() {
+  const v = S.rv.cur, ver = v.versions[S.rv.ver], edit = rvLatest() && v.status !== 'revizyon';
+  $('#rvnotelist').innerHTML = `<h2>Notlar <span style="color:var(--muted);font-weight:400">${ver.notes.length}</span></h2>` + (ver.notes.length ? ver.notes.map(n => `<div class="rvnote" data-note="${n.id}">
+      <button class="rvts" data-rv="seek" data-t="${n.t}" aria-label="${esc(tfmt(n.t))} anına git">${esc(tfmt(n.t))}</button>
+      ${edit ? `<textarea data-rv="noteedit" rows="2" maxlength="2000" aria-label="Not metni">${esc(n.text)}</textarea><button class="btn sm ghost" data-rv="notedel" aria-label="Notu sil">✕</button>` : `<p>${esc(n.text)}</p><span></span>`}</div>`).join('')
+    : '<p class="empty">Henüz not yok. Videoyu durdurup yazmaya başla.</p>');
+  drawReviewMeta(); drawTrack();
+}
+function rvAfter(res) {  // sunucudan gelen güncel videoyla notları tazele
+  S.rv.cur = res; S.rv.ver = res.versions.length - 1; drawReviewNotes(); loadReviewList(true).catch(() => {});
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-rv]'); if (!b || ['SELECT', 'TEXTAREA', 'FORM'].includes(b.tagName)) return;
+  const act = b.dataset.rv, vd = rvVideo(), v = S.rv.cur;
+  if (act === 'seek' && vd) { vd.pause(); vd.currentTime = +b.dataset.t; return; }
+  if (act === 'step' && vd) { vd.pause(); vd.currentTime = Math.max(0, Math.min(vd.duration || 1e9, vd.currentTime + +b.dataset.d)); if (S.rv.hold !== null) S.rv.hold = vd.currentTime; return; }
+  if (act === 'last') { S.rv.ver = v.versions.length - 1; drawReviewer(); return; }
+  if (act === 'copyprompt') { try { toast(await copyText(await api('GET', `/api/review/videos/${v.id}/prompt`)) ? 'İstem kopyalandı. Claude’a yapıştırabilirsin' : 'Kopyalanamadı'); } catch (err) {} return; }
+  if (act === 'notedel') {
+    const id = b.closest('[data-note]').dataset.note;
+    try { await api('DELETE', `/api/review/notes/${id}`); rvAfter(await api('GET', `/api/review/videos/${v.id}`)); } catch (err) {}
+    return;
+  }
+  if (act === 'approve') {
+    try { rvAfter(await api('POST', `/api/review/videos/${v.id}/approve`)); toast('Onaylandı'); } catch (err) {}
+    return;
+  }
+  if (act === 'go') {
+    const n = v.versions[S.rv.ver].notes.length;
+    const ok = await dialog({title: 'Değişikliğe başlansın mı?', text: `${n} not revizyon isteği olarak kaydedilecek. Claude bir sonraki oturumda (veya şimdi “bekleyen revizyonları yap” dediğinde) videoyu bu notlara göre yeniden üretir.`, confirm: 'Değişikliğe başla'});
+    if (!ok) return;
+    try {
+      const res = await api('POST', `/api/review/videos/${v.id}/revise`);
+      const copied = await copyText(res.prompt);
+      S.rv.cur = res.video; drawReviewer(); loadReviewList(true).catch(() => {});
+      toast(copied ? 'Revizyon istendi. İstem de kopyalandı' : 'Revizyon istendi');
+    } catch (err) {}
+  }
+});
+document.addEventListener('submit', async (e) => {
+  const f = e.target.closest('[data-rv=form]'); if (!f) return;
+  e.preventDefault();
+  const ta = $('#rvtext'), vd = rvVideo(), text = ta.value.trim();
+  if (!text) { toast('Önce notu yaz'); return; }
+  if (S.rv.busy) return;
+  const t = S.rv.hold !== null ? S.rv.hold : (vd ? vd.currentTime : 0);
+  S.rv.busy = true; ta.value = '';  // hemen temizle: ikinci Enter aynı notu tekrar göndermesin
+  try {
+    const res = await api('POST', '/api/review/notes', {version_id: S.rv.cur.versions[S.rv.ver].id, t, text});
+    S.rv.hold = null; rvAfter(res); toast(`Not eklendi · ${tfmt(t)}`);
+  } catch (err) { if (!ta.value) ta.value = text; }
+  finally { S.rv.busy = false; }
+});
+document.addEventListener('change', async (e) => {
+  const el = e.target.closest('[data-rv]'); if (!el) return;
+  if (el.dataset.rv === 'rate') { const vd = rvVideo(); if (vd) vd.playbackRate = +el.value; }
+  else if (el.dataset.rv === 'ver') { S.rv.ver = +el.value; drawReviewer(); }
+  else if (el.dataset.rv === 'noteedit') {
+    const id = el.closest('[data-note]').dataset.note;
+    if (!el.value.trim()) { toast('Not boş olamaz'); drawReviewNotes(); return; }
+    try { await api('PATCH', `/api/review/notes/${id}`, {text: el.value}); } catch (err) { drawReviewNotes(); }
+  }
+});
+document.addEventListener('click', (e) => {
+  const tr = e.target.closest('#rvtrack'), vd = rvVideo(); if (!tr || !vd || !S.rv.dur) return;
+  const rc = tr.getBoundingClientRect(); vd.pause(); vd.currentTime = Math.max(0, Math.min(1, (e.clientX - rc.left) / rc.width)) * S.rv.dur;
+});
+document.addEventListener('keydown', (e) => {
+  const vd = rvVideo(); if (!vd || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (['INPUT', 'TEXTAREA', 'SELECT', 'A', 'VIDEO'].includes(e.target.tagName) || (e.target.tagName === 'BUTTON' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || $('#dlg').open) return;
+  if (e.key === ' ') { e.preventDefault(); vd.paused ? vd.play() : vd.pause(); }
+  else if (e.key === 'n' || e.key === 'N') { const ta = $('#rvtext'); if (ta) { e.preventDefault(); ta.focus(); } }
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); vd.pause(); vd.currentTime = Math.max(0, vd.currentTime + (e.key === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 0.1 : 1)); }
+});
+
 /* ---------- Arama ve yenileme ---------- */
 let qT;
 $('#q').addEventListener('input', (e) => { S.q = e.target.value.trim(); clearTimeout(qT); qT = setTimeout(render, 120); });
@@ -797,6 +1010,7 @@ setInterval(() => {
   if (!typing && dragId === null && !document.hidden && !document.querySelector('details.menu[open]') && !$('#dlg').open) {
     load().catch(() => {});
     if (route().view === 'board') loadBoard().catch(() => {});
+    if (['reviews', 'reviewer'].includes(route().view)) loadReviewList().catch(() => {});
     if (route().view === 'analytics' && S.an && S.an.brands.some(b => b.accounts.some(a => a.sync_status === 'calisiyor'))) loadAnalytics().catch(() => {});
   }
 }, 4000);
