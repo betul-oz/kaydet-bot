@@ -10,3 +10,4 @@ Instagram/TikTok/YouTube'da kaydedilen videoları Telegram botuyla kategorileyen
 - Kod yorumları ve kullanıcıya dönük metinler Türkçe.
 - Analiz modülü: `docs/SPEC-ANALIZ.md`, `app/analytics.py`. Hesap/metrik verisi yalnızca yerel DB'de; public repoya marka verisi, token, çerez girmez.
 - Her iş sonunda: test -> commit -> `git push` (GitHub'a kayıt kullanıcı kuralı).
+- İş panosu: oturum sonunda yaptığım/başlattığım işleri `python -m app.board durum <id> <durum>` ve `say` ile panoya yaz; oturum başında panodaki kullanıcı notlarını oku (`/api/board` ya da DB).

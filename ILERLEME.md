@@ -1,5 +1,10 @@
 # ILERLEME
 
+## 2026-10-24 - Oturum 4 (devam): İş 19 bitti
+- Yapıldı: Kanal tabloları (platform başına), İş panosu (iş durumu + mesajlar), 2 haftalık dönem ve bitişe 5 gün kala Telegram hatırlatıcısı (KARARLAR #36-38). Claude komutları: `python -m app.board add|durum|say`.
+- Test: 118 geçti. Tarayıcıda izole veriyle görüldü. Denetçi (Opus) bulguları düzeltildi: kısmi Telegram gönderiminde saat başı tekrar, 4 sn yenilemede kaybolan yazı, yanlış dönem afişi, UTC saat, son tarih biçimi, çift gönderim. Telegram gönderimi gerçek bota denenmedi (mantık sahte gönderici ile test edildi).
+- Kullanıcıdan gereken: panoda ilk 2 haftalık dönemin başlangıç tarihini gir; uygulamayı yeni klasörden aç.
+
 ## 2026-10-24 - Oturum 4: taşıma + İş 11 (Analiz temeli) bitti
 - Taşındı: eski arayüz = **kaydet-bot** (`Desktop\içerik yöneticisi`, GitHub `betul-oz/kaydet-bot`, tam senkrondu). Dosyalar bu klasöre git geçmişiyle kopyalandı (KARARLAR #30). Eski klasör silinmedi.
 - Yapıldı: üstte sağda Kaydet/Analiz anahtarı; Analiz sayfası (marka > hesap > video, güç skoru, etkileşim); `app/analytics.py` (hesaplar, gönderiler, anlık görüntüler, yt-dlp ile YouTube çekimi, arka plan eşitleyici); `/api/analytics/*`; `docs/SPEC-ANALIZ.md`; iş 12-18 planı.
@@ -49,3 +54,4 @@
 - Test: 98 geçti; tarayıcıda 25 videolu sahte veriyle (masaüstü + mobil) denendi, gerçek veriye dokunulmadı. Gerçek uygulama yeni kodla çalışıyor.
 - Bilinen sınırlar: sürüklerken kenarda otomatik kaydırma tarayıcının yerel davranışına bırakıldı (denenmedi); ön yüz için otomatik test yok (elle tarayıcıda denendi).
 - Sıradaki: kullanıcı geri bildirimi; İş 8 (toplu içe aktarma); v2: ffmpeg birleştirme.
+

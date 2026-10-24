@@ -4,7 +4,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from . import analytics
+from . import analytics, board
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS items (
@@ -52,6 +52,7 @@ def connect(path: str | Path) -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode = WAL")  # bot, web ve indirme ayrı bağlantılarla çalışır
     conn.executescript(SCHEMA)
     conn.executescript(analytics.SCHEMA)
+    conn.executescript(board.SCHEMA)
     return conn
 
 

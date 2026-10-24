@@ -9,7 +9,7 @@ from pathlib import Path
 
 import uvicorn
 
-from . import analytics, db
+from . import analytics, db, reminders
 from .bot import build_application
 from .catalog import Catalog
 from .config import load_categories, load_config
@@ -58,6 +58,8 @@ def main() -> int:
                    "config.yaml içinde allowed_user_ids boş (Telegram ID'ni @userinfobot'tan öğren)"
                    if not config.allowed_user_ids else "")
 
+    if token and config.allowed_user_ids:
+        reminders.start_loop(config.db_path, reminders.telegram_sender(token, list(config.allowed_user_ids)))
     print(f"Web sayfası: http://{config.web_host}:{config.web_port}")
     if bot_problem:
         print(f"Telegram botu KAPALI: {bot_problem}. Sadece web sayfası çalışıyor.")

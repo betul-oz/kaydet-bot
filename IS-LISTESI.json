@@ -108,6 +108,12 @@
       "ad": "Zamanlanmis otomatik cekim (gunluk) ve degisim bildirimi (Telegram)",
       "durum": "bekliyor",
       "model": "Sonnet 5.5"
+    },
+    {
+      "id": 19,
+      "ad": "Kanal tablolari (platform basina), Is panosu (sen-Claude is takibi, mesajlar), 2 haftalik donem + bitise 5 gun kala Telegram hatirlatici",
+      "durum": "bitti",
+      "model": "Opus 5.5"
     }
   ]
 }

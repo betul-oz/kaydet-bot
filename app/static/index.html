@@ -185,6 +185,22 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 .x{display:inline-block;border-radius:999px;padding:0 8px;font-weight:600;background:var(--accent-soft)}
 .x.hot{background:var(--ok);color:var(--bg)}.x.cold{background:none;color:var(--muted);border:1px solid var(--line)}
 .scrollx{overflow-x:auto}
+.chan{margin-bottom:26px}.chan h2{font-size:20px;margin-bottom:6px}
+.banner{border-radius:14px;padding:12px 16px;margin:0 0 16px;background:var(--accent-soft);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.banner.son{background:var(--warn);color:var(--bg)}.banner.bitti{background:var(--danger);color:var(--bg)}
+.banner .grow{flex:1;min-width:200px}.banner .btn{color:var(--ink)}
+.blanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;align-items:start;margin-bottom:22px}
+.blane{background:var(--lane);border:1px solid var(--line);border-radius:14px;padding:10px;min-height:90px}
+.blane h3{font-size:15px;margin-bottom:8px;display:flex;justify-content:space-between}
+.blane h3 .n{color:var(--muted);font-size:13px}
+.task{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px}
+.task b{overflow-wrap:anywhere}.task select,.task input{font-size:13px;min-height:32px;padding:3px 8px}
+.newtask{display:grid;grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr)) auto;gap:8px;margin:0 0 16px}
+.newtask>*,.newbatch>*{min-width:0}.newbatch{flex-wrap:wrap}.an{min-width:0}
+@media (max-width:860px){.newtask{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.feed{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px;max-height:340px;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.msg{font-size:14px}.msg .who{font-weight:600;margin-right:6px}.msg.claude .who{color:var(--accent)}.msg.sistem{color:var(--muted)}.msg time{color:var(--muted);font-size:12px;margin-left:6px}
+.sendmsg{display:flex;gap:8px;margin-top:8px}.sendmsg input{flex:1}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -215,7 +231,7 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 
 <script>
 const HUES = ['#E5484D','#E5720B','#C79A00','#2E9E6B','#0D95A6','#3E63DD','#8E4EC6','#CF3F9A'];
-const S = {cats: [], items: [], cards: [], todos: [], q: '', plat: '', dl: false, saving: Promise.resolve(), sig: '', lastError: '', an: null, anOpen: new Set()};
+const S = {cats: [], items: [], cards: [], todos: [], q: '', plat: '', dl: false, saving: Promise.resolve(), sig: '', lastError: '', an: null, anOpen: new Set(), board: null, boardSig: ''};
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeUrl = (u) => /^https?:\/\//i.test(u || '') ? u : '#';
@@ -251,6 +267,8 @@ async function load(force) {
 function route() {
   let h = ''; try { h = decodeURIComponent(location.hash || ''); } catch (e) {}
   if (h === '#/analiz' || h.startsWith('#/analiz/')) return {view: 'analytics', brand: h.slice(9).replace(/^\//, '')};
+  if (h === '#/kanallar') return {view: 'channels'};
+  if (h === '#/pano') return {view: 'board'};
   if (h === '#/planlar') return {view: 'plans'};
   if (h === '#/kategorisiz') return {view: 'orphans'};
   if (h === '#/notlar') return {view: 'notes'};
@@ -292,13 +310,16 @@ const matches = (it) => (!S.plat || it.platform === S.plat) &&
   (!S.q || [it.title, it.note, it.url, it.category, it.subcategory].some(v => fold(v).includes(fold(S.q))));
 
 function renderNav(r) {
-  const an = r.view === 'analytics';
+  const an = ['analytics', 'channels', 'board'].includes(r.view);
   $('#swkaydet').setAttribute('aria-current', String(!an)); $('#swanaliz').setAttribute('aria-current', String(an));
   $('#catadd').hidden = an; $('#extranav').hidden = an;
   if (an) {
     const bs = (S.an && S.an.brands) || [];
-    $('#catnav').innerHTML = `<a class="navlink" href="#/analiz" ${!r.brand ? 'aria-current="page"' : ''}>Tüm markalar<span class="n">${bs.length}</span></a>` +
-      bs.map(b => `<a class="navlink" href="#/analiz/${encodeURIComponent(b.brand)}" ${r.brand === b.brand ? 'aria-current="page"' : ''}>${esc(b.brand)}<span class="n">${b.accounts.length}</span></a>`).join('');
+    const bd = S.board && S.board.tasks.filter(t => t.status !== 'yuklendi').length;
+    $('#catnav').innerHTML = `<a class="navlink" href="#/pano" ${r.view === 'board' ? 'aria-current="page"' : ''}>İş panosu<span class="n">${bd || ''}</span></a>` +
+      `<a class="navlink" href="#/kanallar" ${r.view === 'channels' ? 'aria-current="page"' : ''}>Kanal tabloları</a><div class="sep"></div>` +
+      `<a class="navlink" href="#/analiz" ${r.view === 'analytics' && !r.brand ? 'aria-current="page"' : ''}>Tüm markalar<span class="n">${bs.length}</span></a>` +
+      bs.map(b => `<a class="navlink" href="#/analiz/${encodeURIComponent(b.brand)}" ${r.view === 'analytics' && r.brand === b.brand ? 'aria-current="page"' : ''}>${esc(b.brand)}<span class="n">${b.accounts.length}</span></a>`).join('');
     return;
   }
   $('#catnav').innerHTML = S.cats.map(c => `<a class="navlink" href="#/k/${encodeURIComponent(c.name)}" ${r.view === 'cat' && r.cat === c ? 'aria-current="page"' : ''}>
@@ -384,12 +405,14 @@ function render() {
   if (!S.cats.length) return;
   const r = route();
   document.querySelector('.app').dataset.view = r.view;
-  document.querySelector('.app').dataset.mode = r.view === 'analytics' ? 'analiz' : 'kaydet';
+  document.querySelector('.app').dataset.mode = ['analytics', 'channels', 'board'].includes(r.view) ? 'analiz' : 'kaydet';
   const hadLanesFocus = document.activeElement === document.querySelector('.lanes');
   renderNav(r);
   const view = $('#view');
   view.className = 'view';
   if (r.view === 'analytics') renderAnalytics(r);
+  else if (r.view === 'channels') renderChannels();
+  else if (r.view === 'board') renderBoard();
   else if (r.view === 'plans') renderPlans();
   else if (r.view === 'notes') renderNotes();
   else if (S.q || S.plat) renderSearch();
@@ -433,6 +456,66 @@ function renderAnalytics(r) {
       <div class="kpis"><div class="kpi"><b>${fmt(b.total_views)}</b><span>toplam izlenme (çekilen videolar)</span></div><div class="kpi"><b>${b.post_count}</b><span>video</span></div>
       <div class="kpi"><b>${b.accounts.length}</b><span>hesap</span></div></div>${b.accounts.map(accountRow).join('')}</section>`).join('')
       || '<p class="empty">Henüz hesap yok. “+ Hesap ekle” ile ilk markanı ve hesabını ekle.</p>') + '</div>';
+}
+
+/* ---------- Kanal tabloları (platform başına tek tablo, tüm markalar) ---------- */
+const PROFILE = {youtube: h => 'https://www.youtube.com/@' + h, tiktok: h => 'https://www.tiktok.com/@' + h, instagram: h => 'https://www.instagram.com/' + h + '/'};
+function renderChannels() {
+  if (!S.an) { $('#view').innerHTML = '<p class="empty">Yükleniyor…</p>'; loadAnalytics().catch(() => {}); return; }
+  const all = S.an.brands.flatMap(b => b.accounts);
+  $('#view').innerHTML = `<div class="an"><div class="pagehead"><h1 tabindex="-1">Kanal tabloları</h1><span class="meta">${all.length} hesap</span></div>
+    <p class="hint">Tüm markaların hesapları platform platform. Hesap eklemek veya veri çekmek için marka sayfasına git.</p>` +
+    ['youtube', 'instagram', 'tiktok'].map(pl => {
+      const rows = all.filter(a => a.platform === pl).sort((x, y) => (y.followers || 0) - (x.followers || 0)).map(a => `<tr>
+        <td>${esc(a.brand)}</td><td><a href="${esc(PROFILE[pl](encodeURIComponent(a.handle)))}" target="_blank" rel="noopener noreferrer">@${esc(a.handle)}</a></td>
+        <td class="num">${fmt(a.followers)}</td><td class="num">${a.post_count}</td><td class="num">${fmt(a.median_views)}</td>
+        <td class="num">${fmt(a.total_views)}</td><td>${a.best ? `<a href="${esc(safeUrl(a.best.url))}" target="_blank" rel="noopener noreferrer">${esc((a.best.title || 'video').slice(0, 40))} (${fmt(a.best.views)})</a>` : '–'}</td>
+        <td>${a.sync_error ? `<span class="err">${esc(a.sync_error.slice(0, 60))}</span>` : a.synced_at ? fday(a.synced_at) : 'çekilmedi'}</td></tr>`).join('');
+      return `<section class="chan"><h2>${PLAT[pl]}</h2>${rows ? `<div class="scrollx"><table class="tbl"><thead><tr><th>Marka</th><th>Hesap</th><th class="num">Takipçi</th><th class="num">Video</th><th class="num">Medyan izlenme</th><th class="num">Toplam izlenme</th><th>En iyi video</th><th>Son çekim</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="empty">Bu platformda hesap yok.</p>'}</section>`;
+    }).join('') + '</div>';
+}
+
+/* ---------- İş panosu (sen <-> Claude) ve 2 haftalık dönem ---------- */
+const BST = {bekliyor: 'Bekliyor', uretimde: 'Video üretimde', hazir: 'Hazır', yuklendi: 'Yüklendi', sorun: 'Sorun var'};
+const boardBusy = () => ['TEXTAREA', 'INPUT', 'SELECT'].includes(document.activeElement?.tagName) ||
+  [...document.querySelectorAll('[data-form] input, [data-form] select')].some(el => el.value);
+async function loadBoard(force) {
+  await S.saving;
+  const b = await api('GET', '/api/board'), sig = JSON.stringify(b);
+  if (sig === S.boardSig && !force) return;
+  S.board = b; S.boardSig = sig;
+  if (!boardBusy()) render();
+}
+function renderBoard() {
+  if (!S.board) { $('#view').innerHTML = '<p class="empty">Yükleniyor…</p>'; loadBoard().catch(() => {}); return; }
+  const B = S.board, live = B.batches.filter(b => b.state !== 'bitti').sort((x, y) => x.days_left - y.days_left), cur = live[0] || B.batches[0];
+  const others = B.batches.filter(b => b !== cur);
+  const brands = [...new Set((S.an?.brands || []).map(x => x.brand))];
+  if (!S.an && !S.anTried) { S.anTried = true; api('GET', '/api/analytics').then(x => { S.an = x; if (!boardBusy()) render(); }).catch(() => {}); }
+  const banner = cur ? `<div class="banner ${cur.state}"><div class="grow"><b>${esc(cur.title)}</b>: ${esc(cur.start_date)} → ${esc(cur.end_date)} · ${cur.state === 'bitti' ? 'dönem bitti' : cur.days_left === 0 ? 'bugün son gün' : cur.days_left + ' gün kaldı'}
+      ${cur.state === 'son' ? ' · Yeni dönemin içeriklerini planlama zamanı!' : ` · hatırlatma ${esc(cur.remind_on)} tarihinde (Telegram botu açıkken)`}</div>
+      <button class="btn sm" data-act="bdel" data-id="${cur.id}">Dönemi kaldır</button></div>` + others.map(o => `<div class="banner"><div class="grow">${esc(o.title)}: ${esc(o.start_date)} → ${esc(o.end_date)} · ${o.state === 'bitti' ? 'bitti' : o.days_left + ' gün kaldı'}</div><button class="btn sm" data-act="bdel" data-id="${o.id}">Kaldır</button></div>`).join('')
+    : `<div class="banner"><div class="grow">Henüz içerik dönemi yok. Başlangıç tarihini girince bitişe 5 gün kala Telegram'dan hatırlatılır (uygulama ve bot açıkken).</div></div>`;
+  const lane = (st) => { const ts = B.tasks.filter(t => t.status === st); return `<section class="blane" aria-label="${BST[st]}"><h3>${BST[st]}<span class="n">${ts.length}</span></h3>` + ts.map(t => `<div class="task" data-task="${t.id}">
+      <b>${esc(t.title)}</b><span class="stat">${esc([t.brand, t.platform && PLAT[t.platform], t.due && 'son ' + t.due].filter(Boolean).join(' · '))}</span>
+      <select class="field" data-act="tstatus" aria-label="Durum">${B.statuses.map(x => `<option value="${x}" ${x === t.status ? 'selected' : ''}>${BST[x]}</option>`).join('')}</select>
+      <input class="field" data-act="tnote" value="${esc(t.note)}" placeholder="Not" aria-label="İş notu">
+      <button class="btn sm ghost danger" data-act="tdel">Sil</button></div>`).join('') + '</section>'; };
+  const dt = (x) => { const d = new Date(String(x || '').replace(' ', 'T') + 'Z'); return isNaN(d) ? '' : esc(d.toLocaleString('tr-TR', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})); };
+  $('#view').innerHTML = `<div class="an"><div class="pagehead"><h1 tabindex="-1">İş panosu</h1><span class="meta">${B.tasks.filter(t => t.status !== 'yuklendi').length} açık iş</span></div>
+    <p class="hint">Yüklenecek/üretilecek işler ve durumları burada. Ben (Claude) bir oturumda çalıştığımda durumları güncellerim; sen de iş ekleyebilir, not düşebilirsin.</p>
+    ${banner}
+    <form class="newbatch addtodo" data-form="batch"><label class="sr" for="bstart">Dönem başlangıcı</label><input class="field" id="bstart" type="date" required>
+      <input class="field" id="btitle" maxlength="100" placeholder="Dönem adı (örn. Kasım 1. yarı)"><button class="btn" type="submit">2 haftalık dönem başlat</button></form>
+    <form class="newtask" data-form="task"><input class="field" id="ttitle" maxlength="200" placeholder="Yeni iş (örn. 3 reels yükle)" required aria-label="İş başlığı">
+      <select class="field" id="tbrand" aria-label="Marka"><option value="">Marka (isteğe bağlı)</option>${brands.map(x => `<option>${esc(x)}</option>`).join('')}</select>
+      <select class="field" id="tplat" aria-label="Platform"><option value="">Platform</option>${Object.entries(PLAT).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+      <input class="field" id="tdue" type="date" aria-label="Son tarih"><button class="btn primary" type="submit">Ekle</button></form>
+    <div class="blanes">${B.statuses.map(lane).join('')}</div>
+    <h2 style="font-size:18px;margin-bottom:8px">Mesajlar</h2>
+    <div class="feed" id="feed">${B.messages.map(m => `<div class="msg ${esc(m.author)}"><span class="who">${m.author === 'sen' ? 'Sen' : m.author === 'claude' ? 'Claude' : 'Sistem'}</span>${esc(m.text)}<time>${dt(m.created_at)}</time></div>`).join('') || '<p class="empty">Henüz mesaj yok.</p>'}</div>
+    <form class="sendmsg" data-form="msg"><input class="field" id="mtext" maxlength="2000" placeholder="Claude'a not bırak (bir sonraki oturumda okurum)" aria-label="Mesaj"><button class="btn primary" type="submit">Gönder</button></form></div>`;
+  const f = $('#feed'); if (f && S.lastMsg !== B.messages.length) { f.scrollTop = f.scrollHeight; S.lastMsg = B.messages.length; }
 }
 
 /* ---------- Notlar (todo listesi) ---------- */
@@ -516,6 +599,9 @@ document.addEventListener('click', async (e) => {
   }
   if (act === 'cpath') { const it = S.items.find(i => i.id === +id); toast(it && await copyText(it.file_path) ? 'Yol kopyalandı' : 'Kopyalanamadı'); return; }
 
+  // --- pano ---
+  if (act === 'bdel') { if (!confirm('Dönem kaldırılsın mı?')) return; const x = await run('DELETE', `/api/board/batches/${id}`); if (x) { S.board = x; render(); } return; }
+  if (act === 'tdel') { if (!confirm('İş silinsin mi?')) return; const x = await run('DELETE', `/api/board/tasks/${b.closest('[data-task]').dataset.task}`); if (x) { S.board = x; render(); } return; }
   // --- analiz ---
   if (act === 'anadd') {
     const brands = [...new Set((S.an?.brands || []).map(x => x.brand))];
@@ -606,6 +692,17 @@ document.addEventListener('click', async (e) => {
 
 document.addEventListener('toggle', (e) => { const d = e.target; if (d.dataset?.accopen) { const id = +d.dataset.accopen; d.open ? S.anOpen.add(id) : S.anOpen.delete(id); } }, true);
 document.addEventListener('submit', async (e) => {
+  const form = e.target.dataset.form; if (form) {
+    e.preventDefault(); let x;
+    if (S.formBusy) return; S.formBusy = true;
+    try {
+    if (form === 'task') x = await run('POST', '/api/board/tasks', {title: $('#ttitle').value, brand: $('#tbrand').value, platform: $('#tplat').value, due: $('#tdue').value});
+    else if (form === 'batch') x = await run('POST', '/api/board/batches', {title: $('#btitle').value, start: $('#bstart').value});
+    else if (form === 'msg') { const t = $('#mtext').value.trim(); if (!t) return; x = await run('POST', '/api/board/messages', {text: t, author: 'sen'}); }
+    } finally { S.formBusy = false; }
+    if (x) { S.board = x; S.boardSig = JSON.stringify(x); render(); }
+    return;
+  }
   if (!e.target.classList.contains('addtodo')) return;
   e.preventDefault();
   const inp = $('#newtodo'), text = inp.value.trim();
@@ -632,6 +729,12 @@ async function copyText(text) {
 
 document.addEventListener('change', async (e) => {
   const t = e.target, act = t.dataset.act; if (!act) return;
+  if (act === 'tstatus' || act === 'tnote') {
+    const tid = t.closest('[data-task]').dataset.task;
+    const x = await run('PATCH', `/api/board/tasks/${tid}`, act === 'tstatus' ? {status: t.value} : {note: t.value});
+    if (x) { S.board = x; if (act === 'tstatus') render(); }
+    return;
+  }
   const cid = t.closest('[data-card]')?.dataset.card, vid = t.closest('[data-item]')?.dataset.item;
   // Not/başlık düzenlemelerinde ekran yeniden ÇİZİLMEZ (yazdığın alan bozulmasın); sadece kaydedilir
   const saveInPlace = async (body, path) => { const rr = await run('PATCH', path, body); const i = S.cards.findIndex(c => c.id === +cid); if (rr && i >= 0) S.cards[i] = rr; };
@@ -693,6 +796,7 @@ setInterval(() => {
   const typing = ['TEXTAREA', 'INPUT', 'SELECT'].includes(document.activeElement?.tagName);
   if (!typing && dragId === null && !document.hidden && !document.querySelector('details.menu[open]') && !$('#dlg').open) {
     load().catch(() => {});
+    if (route().view === 'board') loadBoard().catch(() => {});
     if (route().view === 'analytics' && S.an && S.an.brands.some(b => b.accounts.some(a => a.sync_status === 'calisiyor'))) loadAnalytics().catch(() => {});
   }
 }, 4000);

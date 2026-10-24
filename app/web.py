@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, StringConstraints
 
-from . import analytics, db
+from . import analytics, board, db
 from .cards import format_card
 from .catalog import Catalog, CatalogError
 from .config import Categories, Config
@@ -111,6 +111,31 @@ class AccountAdd(BaseModel):
 
 class PostUrl(BaseModel):
     url: str = Field(max_length=500)
+
+
+class TaskAdd(BaseModel):
+    title: str = Field(max_length=200)
+    brand: str = Field("", max_length=60)
+    platform: str = Field("", max_length=20)
+    due: str = Field("", max_length=10)
+    note: str = Field("", max_length=2000)
+
+
+class TaskPatch(BaseModel):
+    status: str | None = Field(None, max_length=20)
+    title: str | None = Field(None, max_length=200)
+    note: str | None = Field(None, max_length=2000)
+    due: str | None = Field(None, max_length=10)
+
+
+class MessageAdd(BaseModel):
+    text: str = Field(max_length=2000)
+    author: str = Field("sen", max_length=10)
+
+
+class BatchAdd(BaseModel):
+    title: str = Field("", max_length=100)
+    start: str = Field(max_length=10)
 
 
 def create_app(config: Config, categories: Categories,
@@ -332,6 +357,61 @@ def create_app(config: Config, categories: Categories,
             except Exception as e:
                 raise HTTPException(502, f"Video bilgisi alınamadı: {str(e)[:200]}")
             return analytics.overview(c)
+
+    # ---- İş panosu (kullanıcı <-> Claude) ve 2 haftalık dönemler ----
+    def board_call(fn, *args, **kw):
+        try:
+            return fn(*args, **kw)
+        except board.BoardError as e:
+            raise HTTPException(e.status, str(e))
+
+    @app.get("/api/board")
+    def board_overview():
+        with conn() as c:
+            return board.overview(c)
+
+    @app.post("/api/board/tasks", status_code=201)
+    def task_add(body: TaskAdd):
+        with conn() as c:
+            board_call(board.add_task, c, body.title, brand=body.brand, platform=body.platform,
+                       due=body.due, note=body.note)
+            return board.overview(c)
+
+    @app.patch("/api/board/tasks/{task_id}")
+    def task_patch(task_id: int, body: TaskPatch):
+        with conn() as c:
+            if not board_call(board.update_task, c, task_id, status=body.status, title=body.title,
+                              note=body.note, due=body.due):
+                raise HTTPException(404, "İş yok")
+            return board.overview(c)
+
+    @app.delete("/api/board/tasks/{task_id}")
+    def task_delete(task_id: int):
+        with conn() as c:
+            if not board.delete_task(c, task_id):
+                raise HTTPException(404, "İş yok")
+            return board.overview(c)
+
+    @app.post("/api/board/messages", status_code=201)
+    def message_add(body: MessageAdd):
+        if body.author not in ("sen", "claude"):
+            raise HTTPException(400, "Yazar sen veya claude olmalı")
+        with conn() as c:
+            board_call(board.add_message, c, body.author, body.text)
+            return board.overview(c)
+
+    @app.post("/api/board/batches", status_code=201)
+    def batch_add(body: BatchAdd):
+        with conn() as c:
+            board_call(board.add_batch, c, body.title, body.start)
+            return board.overview(c)
+
+    @app.delete("/api/board/batches/{batch_id}")
+    def batch_delete(batch_id: int):
+        with conn() as c:
+            if not board.delete_batch(c, batch_id):
+                raise HTTPException(404, "Dönem yok")
+            return board.overview(c)
 
     # ---- Kategori / alt başlık yönetimi ----
     def edit(fn, *args):
