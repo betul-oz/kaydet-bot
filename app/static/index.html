@@ -160,7 +160,31 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
   .pagehead h1{font-size:28px} .view.cat .hint{display:none}
   .lanes{scroll-snap-type:x proximity} .lane{flex-basis:86vw;scroll-snap-align:start}
 }
-.app[data-view=notes] .topbar,.app[data-view=plans] .topbar{display:none}
+.app[data-view=notes] #q,.app[data-view=notes] #plat,.app[data-view=plans] #q,.app[data-view=plans] #plat,
+.app[data-mode=analiz] #q,.app[data-mode=analiz] #plat{display:none}
+.modeswitch{margin-left:auto;display:inline-flex;background:var(--lane);border:1px solid var(--line);border-radius:999px;padding:3px}
+.modeswitch a{padding:6px 16px;border-radius:999px;text-decoration:none;color:var(--muted);min-height:32px;display:inline-flex;align-items:center}
+.modeswitch a[aria-current=true]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+/* ---- Analiz ---- */
+.an{max-width:1100px}
+.brandbox{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:18px}
+.brandbox h2{font-size:22px;margin-bottom:10px}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.kpi{background:var(--bg);border-radius:10px;padding:8px 14px;min-width:120px}
+.kpi b{display:block;font:600 20px var(--head);font-variant-numeric:tabular-nums}.kpi span{font-size:12px;color:var(--muted)}
+.acc{border-top:1px solid var(--line);padding:10px 0}
+.acchead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.acchead .plat{font-weight:600;min-width:84px}
+.acchead .stat,.stat{color:var(--muted);font-size:13px}
+.acchead .grow{flex:1}
+.tbl{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;font-variant-numeric:tabular-nums}
+.tbl th{text-align:left;color:var(--muted);font-weight:500;padding:4px 8px;border-bottom:1px solid var(--line)}
+.tbl td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl td.num,.tbl th.num{text-align:right}
+.tbl a{color:var(--ink);text-decoration:none}.tbl a:hover{text-decoration:underline}
+.x{display:inline-block;border-radius:999px;padding:0 8px;font-weight:600;background:var(--accent-soft)}
+.x.hot{background:var(--ok);color:var(--bg)}.x.cold{background:none;color:var(--muted);border:1px solid var(--line)}
+.scrollx{overflow-x:auto}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -169,9 +193,9 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
   <aside class="rail" aria-label="Kategoriler">
     <div class="brand">Kaydet</div>
     <nav id="catnav"></nav>
-    <button class="btn ghost sm" data-act="catadd">+ Yeni kategori</button>
+    <button class="btn ghost sm" data-act="catadd" id="catadd">+ Yeni kategori</button>
     <div class="sep"></div>
-    <nav><a class="navlink" id="plannav" href="#/planlar">Plan kartları <span class="n" id="plancount"></span></a>
+    <nav id="extranav"><a class="navlink" id="plannav" href="#/planlar">Plan kartları <span class="n" id="plancount"></span></a>
       <a class="navlink" id="notenav" href="#/notlar">Notlar <span class="n" id="notecount"></span></a>
       <a class="navlink" id="orphannav" href="#/kategorisiz" hidden>Kategorisiz <span class="n" id="orphancount"></span></a></nav>
   </aside>
@@ -181,6 +205,7 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
       <input class="field" type="search" id="q" placeholder="Tüm kategorilerde ara…">
       <label class="sr" for="plat">Platform</label>
       <select class="field" id="plat"><option value="">Tüm platformlar</option><option>instagram</option><option>tiktok</option><option>youtube</option></select>
+      <nav class="modeswitch" aria-label="Görünüm"><a href="#/" id="swkaydet">Kaydet</a><a href="#/analiz" id="swanaliz">Analiz</a></nav>
     </header>
     <main class="view" id="view"></main>
   </div>
@@ -190,7 +215,7 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 
 <script>
 const HUES = ['#E5484D','#E5720B','#C79A00','#2E9E6B','#0D95A6','#3E63DD','#8E4EC6','#CF3F9A'];
-const S = {cats: [], items: [], cards: [], todos: [], q: '', plat: '', dl: false, saving: Promise.resolve(), sig: '', lastError: ''};
+const S = {cats: [], items: [], cards: [], todos: [], q: '', plat: '', dl: false, saving: Promise.resolve(), sig: '', lastError: '', an: null, anOpen: new Set()};
 const $ = (s) => document.querySelector(s);
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeUrl = (u) => /^https?:\/\//i.test(u || '') ? u : '#';
@@ -225,6 +250,7 @@ async function load(force) {
 /* ---------- Yönlendirme: #/k/<kategori> | #/planlar ---------- */
 function route() {
   let h = ''; try { h = decodeURIComponent(location.hash || ''); } catch (e) {}
+  if (h === '#/analiz' || h.startsWith('#/analiz/')) return {view: 'analytics', brand: h.slice(9).replace(/^\//, '')};
   if (h === '#/planlar') return {view: 'plans'};
   if (h === '#/kategorisiz') return {view: 'orphans'};
   if (h === '#/notlar') return {view: 'notes'};
@@ -266,6 +292,15 @@ const matches = (it) => (!S.plat || it.platform === S.plat) &&
   (!S.q || [it.title, it.note, it.url, it.category, it.subcategory].some(v => fold(v).includes(fold(S.q))));
 
 function renderNav(r) {
+  const an = r.view === 'analytics';
+  $('#swkaydet').setAttribute('aria-current', String(!an)); $('#swanaliz').setAttribute('aria-current', String(an));
+  $('#catadd').hidden = an; $('#extranav').hidden = an;
+  if (an) {
+    const bs = (S.an && S.an.brands) || [];
+    $('#catnav').innerHTML = `<a class="navlink" href="#/analiz" ${!r.brand ? 'aria-current="page"' : ''}>Tüm markalar<span class="n">${bs.length}</span></a>` +
+      bs.map(b => `<a class="navlink" href="#/analiz/${encodeURIComponent(b.brand)}" ${r.brand === b.brand ? 'aria-current="page"' : ''}>${esc(b.brand)}<span class="n">${b.accounts.length}</span></a>`).join('');
+    return;
+  }
   $('#catnav').innerHTML = S.cats.map(c => `<a class="navlink" href="#/k/${encodeURIComponent(c.name)}" ${r.view === 'cat' && r.cat === c ? 'aria-current="page"' : ''}>
       <span class="dot" style="background:${hue(c.name)}"></span>${esc(c.name)}<span class="n">${count(c.name)}</span></a>`).join('');
   const o = orphans().length;
@@ -349,16 +384,55 @@ function render() {
   if (!S.cats.length) return;
   const r = route();
   document.querySelector('.app').dataset.view = r.view;
+  document.querySelector('.app').dataset.mode = r.view === 'analytics' ? 'analiz' : 'kaydet';
   const hadLanesFocus = document.activeElement === document.querySelector('.lanes');
   renderNav(r);
   const view = $('#view');
   view.className = 'view';
-  if (r.view === 'plans') renderPlans();
+  if (r.view === 'analytics') renderAnalytics(r);
+  else if (r.view === 'plans') renderPlans();
   else if (r.view === 'notes') renderNotes();
   else if (S.q || S.plat) renderSearch();
   else if (r.view === 'orphans') renderOrphans();
   else { view.className = 'view cat'; renderCategory(r.cat); }
   if (hadLanesFocus) document.querySelector('.lanes')?.focus({preventScroll: true});  // yenilemede odak kaybolmasın
+}
+
+/* ---------- Analiz ---------- */
+const PLAT = {youtube: 'YouTube', tiktok: 'TikTok', instagram: 'Instagram'};
+const fmt = (n) => n == null ? '–' : n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + ' Mn' : n >= 1e4 ? Math.round(n / 1e3) + ' B' : n >= 1e3 ? (n / 1e3).toFixed(1).replace(/\.0$/, '') + ' B' : String(n);
+const fday = (d) => (d || '').slice(0, 10) || '–';
+async function loadAnalytics() { S.an = await api('GET', '/api/analytics'); render(); }
+function postsTable(a) {
+  const rows = [...a.posts].sort((x, y) => (y.outlier || 0) - (x.outlier || 0)).map(p => {
+    const o = p.outlier, cls = o >= 2 ? 'hot' : o != null && o < 0.7 ? 'cold' : '';
+    return `<tr><td><a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer">${esc((p.title || p.url).slice(0, 90))}</a></td>
+      <td>${fday(p.posted_at)}</td><td class="num">${p.duration != null ? p.duration + ' sn' : '–'}</td>
+      <td class="num">${fmt(p.views)}</td><td class="num">${fmt(p.likes)}</td><td class="num">${fmt(p.comments)}</td>
+      <td class="num">${p.engagement != null ? '%' + p.engagement : '–'}</td><td class="num">${o != null ? `<span class="x ${cls}">${o}×</span>` : '–'}</td></tr>`;
+  }).join('');
+  return `<div class="scrollx"><table class="tbl"><thead><tr><th>Video (en güçlüden)</th><th>Tarih</th><th class="num">Süre</th><th class="num">İzlenme</th><th class="num">Beğeni</th><th class="num">Yorum</th><th class="num">Etkileşim</th><th class="num" title="İzlenme ÷ hesabın medyanı">Güç</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function accountRow(a) {
+  const st = a.sync_status === 'calisiyor' ? 'çekiliyor…' : a.sync_status === 'tamam' ? 'güncel: ' + fday(a.synced_at) : a.sync_status === 'hata' ? '' : 'henüz çekilmedi';
+  return `<div class="acc" data-acc="${a.id}"><div class="acchead"><span class="plat">${PLAT[a.platform]}</span><span>@${esc(a.handle)}</span>
+      <span class="stat">${a.followers != null ? fmt(a.followers) + ' takipçi · ' : ''}${a.post_count} video${a.median_views != null ? ' · medyan ' + fmt(a.median_views) : ''} · ${st}</span><span class="grow"></span>
+      ${a.platform === 'youtube' ? `<button class="btn sm" data-act="ansync" ${a.sync_status === 'calisiyor' ? 'disabled' : ''}>Verileri çek</button>` : ''}
+      <button class="btn sm" data-act="anpost">Video linki ekle</button>
+      <button class="btn sm ghost danger" data-act="andel" aria-label="Hesabı kaldır">✕</button></div>
+    ${a.sync_error ? `<div class="err">${esc(a.sync_error)}</div>` : ''}${a.post_count ? `<details data-accopen="${a.id}" ${S.anOpen.has(a.id) ? 'open' : ''}><summary class="stat" style="cursor:pointer;margin-top:6px">Videoları göster</summary>${postsTable(a)}</details>` : ''}</div>`;
+}
+function renderAnalytics(r) {
+  if (!S.an) { $('#view').innerHTML = '<p class="empty">Analiz verisi yükleniyor…</p>'; loadAnalytics().catch(() => {}); return; }
+  const brands = S.an.brands.filter(b => !r.brand || b.brand === r.brand);
+  $('#view').innerHTML = `<div class="an"><div class="pagehead"><h1 tabindex="-1">${r.brand ? esc(r.brand) : 'Analiz'}</h1>
+      <span class="meta">${S.an.brands.length} marka · ${S.an.brands.reduce((n, b) => n + b.accounts.length, 0)} hesap</span><span style="flex:1"></span>
+      <button class="btn primary" data-act="anadd">+ Hesap ekle</button></div>
+    <p class="hint">Her markanın TikTok, YouTube ve Instagram hesapları burada. <b>Güç</b> = videonun izlenmesi ÷ o hesabın medyan izlenmesi (2× ve üstü yeşil: hesabın normalinin çok üstü).</p>` +
+    (brands.map(b => `<section class="brandbox"><h2>${esc(b.brand)}</h2>
+      <div class="kpis"><div class="kpi"><b>${fmt(b.total_views)}</b><span>toplam izlenme (çekilen videolar)</span></div><div class="kpi"><b>${b.post_count}</b><span>video</span></div>
+      <div class="kpi"><b>${b.accounts.length}</b><span>hesap</span></div></div>${b.accounts.map(accountRow).join('')}</section>`).join('')
+      || '<p class="empty">Henüz hesap yok. “+ Hesap ekle” ile ilk markanı ve hesabını ekle.</p>') + '</div>';
 }
 
 /* ---------- Notlar (todo listesi) ---------- */
@@ -390,7 +464,7 @@ function dialog({title, text = '', fields = [], confirm = 'Kaydet', danger = fal
     d.innerHTML = `<form method="dialog"><h2>${esc(title)}</h2>${text ? `<p>${esc(text)}</p>` : ''}${error ? `<p role="alert" style="color:var(--danger)">${esc(error)}</p>` : ''}
       ${fields.map((f, i) => `<label for="f${i}">${esc(f.label)}</label>` + (f.options
         ? `<select class="field" id="f${i}">${f.options.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select>`
-        : `<input class="field" id="f${i}" value="${esc(f.value || '')}" maxlength="40" autocomplete="off">`)).join('')}
+        : `<input class="field" id="f${i}" value="${esc(f.value || '')}" maxlength="300" autocomplete="off">`)).join('')}
       <div class="actions"><button class="btn" value="cancel" formnovalidate>Vazgeç</button>
       <button class="btn ${danger ? 'danger' : 'primary'}" value="ok">${esc(confirm)}</button></div></form>`;
     // close olayına değil submit/cancel'a bağlı: her tarayıcıda aynı sırayla çalışır
@@ -442,6 +516,26 @@ document.addEventListener('click', async (e) => {
   }
   if (act === 'cpath') { const it = S.items.find(i => i.id === +id); toast(it && await copyText(it.file_path) ? 'Yol kopyalandı' : 'Kopyalanamadı'); return; }
 
+  // --- analiz ---
+  if (act === 'anadd') {
+    const brands = [...new Set((S.an?.brands || []).map(x => x.brand))];
+    const v = await ask({title: 'Hesap ekle', text: 'Marka adı, platform ve kullanıcı adı (ya da profil linki).', confirm: 'Ekle',
+      fields: [{label: 'Marka', value: r.brand || brands[0] || ''}, {label: 'Platform', options: [{value: 'youtube', label: 'YouTube'}, {value: 'tiktok', label: 'TikTok'}, {value: 'instagram', label: 'Instagram'}]}, {label: 'Kullanıcı adı veya link'}]},
+      async (v) => { const x = await run('POST', '/api/analytics/accounts', {brand: v[0], platform: v[1], handle: v[2]}); if (x) S.an = x; return !!x; });
+    if (v) { toast('Hesap eklendi'); render(); }
+    return;
+  }
+  if (act === 'ansync' || act === 'anpost' || act === 'andel') {
+    const aid = b.closest('[data-acc]').dataset.acc;
+    if (act === 'ansync') { const ok = await run('POST', `/api/analytics/accounts/${aid}/sync`); if (ok) toast('Veri çekimi başladı'); await loadAnalytics(); }
+    else if (act === 'andel') { if (confirm('Hesap ve çekilmiş tüm verisi silinsin mi?')) { await run('DELETE', `/api/analytics/accounts/${aid}`); await loadAnalytics(); } }
+    else {
+      const v = await ask({title: 'Video linki ekle', text: 'Videonun linkini yapıştır; izlenme, beğeni ve yorum sayıları çekilir.', confirm: 'Çek', fields: [{label: 'Video linki'}]},
+        async (v) => { const x = await run('POST', `/api/analytics/accounts/${aid}/posts`, {url: v[0]}); if (x) S.an = x; return !!x; });
+      if (v) { toast('Video eklendi'); render(); }
+    }
+    return;
+  }
   // --- kategori / alt başlık yönetimi ---
   if (act === 'catadd') {
     const v = await ask({title: 'Yeni kategori', text: 'Kategori ve içine koyacağın ilk alt başlığı yaz.', fields: [{label: 'Kategori adı'}, {label: 'İlk alt başlık'}], confirm: 'Ekle'},
@@ -510,6 +604,7 @@ document.addEventListener('click', async (e) => {
   await load();
 });
 
+document.addEventListener('toggle', (e) => { const d = e.target; if (d.dataset?.accopen) { const id = +d.dataset.accopen; d.open ? S.anOpen.add(id) : S.anOpen.delete(id); } }, true);
 document.addEventListener('submit', async (e) => {
   if (!e.target.classList.contains('addtodo')) return;
   e.preventDefault();
@@ -596,7 +691,10 @@ $('#catnav').addEventListener('click', (e) => { if (e.target.closest('a')) { S.q
 // Her 4 sn'de değişiklikleri çek (bottan gelen videolar, indirme durumu); yazarken/sürüklerken dokunma
 setInterval(() => {
   const typing = ['TEXTAREA', 'INPUT', 'SELECT'].includes(document.activeElement?.tagName);
-  if (!typing && dragId === null && !document.hidden && !document.querySelector('details.menu[open]') && !$('#dlg').open) load().catch(() => {});
+  if (!typing && dragId === null && !document.hidden && !document.querySelector('details.menu[open]') && !$('#dlg').open) {
+    load().catch(() => {});
+    if (route().view === 'analytics' && S.an && S.an.brands.some(b => b.accounts.some(a => a.sync_status === 'calisiyor'))) loadAnalytics().catch(() => {});
+  }
 }, 4000);
 
 load().catch(() => { $('#view').innerHTML = '<p class="empty">Sunucuya ulaşılamadı. python -m app çalışıyor mu?</p>'; });

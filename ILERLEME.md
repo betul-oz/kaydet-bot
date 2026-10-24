@@ -1,5 +1,14 @@
 # ILERLEME
 
+## 2026-10-24 - Oturum 4: taşıma + İş 11 (Analiz temeli) bitti
+- Taşındı: eski arayüz = **kaydet-bot** (`Desktop\içerik yöneticisi`, GitHub `betul-oz/kaydet-bot`, tam senkrondu). Dosyalar bu klasöre git geçmişiyle kopyalandı (KARARLAR #30). Eski klasör silinmedi.
+- Yapıldı: üstte sağda Kaydet/Analiz anahtarı; Analiz sayfası (marka > hesap > video, güç skoru, etkileşim); `app/analytics.py` (hesaplar, gönderiler, anlık görüntüler, yt-dlp ile YouTube çekimi, arka plan eşitleyici); `/api/analytics/*`; `docs/SPEC-ANALIZ.md`; iş 12-18 planı.
+- Test: 111 geçti (analiz için 13 yeni, ağsız). Denetçi (Opus) bulguları düzeltildi: takılı "calisiyor" durumu, sekme/video hatası toleransı, platform-host izin listesi (SSRF), harf farkı, medyan tutarlılığı, açık tablo korunması. Bilinen: eklenen videonun hesaba aitliği doğrulanmıyor; Shorts+uzun video tek medyanda. Gerçek denemede (izole DB) bir YouTube kanalından 30 video + takipçi çekildi, tarayıcıda görüldü.
+- **Gerçek durum:** TikTok profil listesi yt-dlp'de çalışmıyor, Instagram profil listesi desteklenmiyor (KARARLAR #32). Şimdilik "Video linki ekle"; kalıcı çözüm iş 13 (panel dışa aktarma) ve 14 (resmi API).
+- Kullanıcıdan gereken: marka/hesap listesi (arayüzden "+ Hesap ekle"). Instagram için `config.yaml`'a `cookies_file`.
+- Gerçek uygulama (bot + web) yeni kodla YENİDEN BAŞLATILMADI: çalışan eski süreç varsa kapatıp yeni klasördeki `baslat.bat` ile aç (aynı bot token iki yerde çalışmasın).
+- Sıradaki tek iş: **İş 12 (analiz panoları)** ya da hesaplar girildikten sonra **İş 13**.
+
 ## 2026-10-19 — Oturum 2: İş 2 (iskelet) bitti
 - Yapıldı: `app/config.py` (config + kategori okuma, doğrulama, Türkçe İ/I/ı eşleşmesi), `app/links.py` (platform tanıma, YouTube/IG/TikTok normalleştirme, `link diy/hook` kısa yolu), `app/db.py` (SQLite: items, cards, card_items), örnek config dosyaları, `.gitignore`, CLAUDE.md.
 - Test: `python -m pytest -q` → 27 geçti.

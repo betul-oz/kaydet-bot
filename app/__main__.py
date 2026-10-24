@@ -9,7 +9,7 @@ from pathlib import Path
 
 import uvicorn
 
-from . import db
+from . import analytics, db
 from .bot import build_application
 from .catalog import Catalog
 from .config import load_categories, load_config
@@ -50,7 +50,8 @@ def main() -> int:
     if fixed:
         print(f"{fixed} videonun kategori yazımı düzeltildi.")
     server = uvicorn.Server(uvicorn.Config(
-        create_app(config, categories, downloader, catalog),
+        create_app(config, categories, downloader, catalog,
+                   analytics.Syncer(config.db_path, db.connect, config.cookies_file)),
         host=config.web_host, port=config.web_port, log_level="warning"))
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
     bot_problem = ("TELEGRAM_BOT_TOKEN yok (.env)" if not token else

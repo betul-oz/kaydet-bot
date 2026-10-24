@@ -8,3 +8,5 @@ Instagram/TikTok/YouTube'da kaydedilen videoları Telegram botuyla kategorileyen
 - Testler: `python -m pytest`
 - Public repo: token, `config.yaml`, `categories.yaml`, `*.db`, `downloads/` asla commit edilmez.
 - Kod yorumları ve kullanıcıya dönük metinler Türkçe.
+- Analiz modülü: `docs/SPEC-ANALIZ.md`, `app/analytics.py`. Hesap/metrik verisi yalnızca yerel DB'de; public repoya marka verisi, token, çerez girmez.
+- Her iş sonunda: test -> commit -> `git push` (GitHub'a kayıt kullanıcı kuralı).

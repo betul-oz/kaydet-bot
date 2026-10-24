@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, StringConstraints
 
-from . import db
+from . import analytics, db
 from .cards import format_card
 from .catalog import Catalog, CatalogError
 from .config import Categories, Config
@@ -103,8 +103,19 @@ class SubDelete(SubAdd):
     move_to_sub: str = Field("", max_length=200)
 
 
+class AccountAdd(BaseModel):
+    brand: str = Field(max_length=100)
+    platform: str = Field(max_length=20)
+    handle: str = Field(max_length=300)
+
+
+class PostUrl(BaseModel):
+    url: str = Field(max_length=500)
+
+
 def create_app(config: Config, categories: Categories,
-               downloader: Downloader | None = None, catalog: Catalog | None = None) -> FastAPI:
+               downloader: Downloader | None = None, catalog: Catalog | None = None,
+               syncer: analytics.Syncer | None = None) -> FastAPI:
     app = FastAPI(title="kaydet-bot", docs_url=None, redoc_url=None, openapi_url=None)
     # DNS rebinding'e karşı: yalnızca yerel adlarla (ve config.allowed_hosts ile) erişim
     hosts = {"localhost", "127.0.0.1", "[::1]", *config.allowed_hosts}
@@ -271,6 +282,56 @@ def create_app(config: Config, categories: Categories,
             if not db.delete_todo(c, todo_id):
                 raise HTTPException(404, "Not yok")
         return {"ok": True}
+
+    # ---- Analiz: marka > hesap > gönderi ----
+    @app.get("/api/analytics")
+    def analytics_overview():
+        with conn() as c:
+            return analytics.overview(c)
+
+    @app.post("/api/analytics/accounts", status_code=201)
+    def account_add(body: AccountAdd):
+        with conn() as c:
+            try:
+                analytics.add_account(c, body.brand, body.platform, body.handle)
+            except analytics.AnalyticsError as e:
+                raise HTTPException(e.status, str(e))
+            return analytics.overview(c)
+
+    @app.delete("/api/analytics/accounts/{account_id}")
+    def account_delete(account_id: int):
+        with conn() as c:
+            if not analytics.delete_account(c, account_id):
+                raise HTTPException(404, "Hesap yok")
+        return {"ok": True}
+
+    @app.post("/api/analytics/accounts/{account_id}/sync")
+    def account_sync(account_id: int):
+        if syncer is None:
+            raise HTTPException(503, "Veri çekme kapalı")
+        if not syncer.start(account_id):
+            raise HTTPException(409, "Hesap yok veya zaten eşitleniyor")
+        return {"ok": True}
+
+    @app.post("/api/analytics/accounts/{account_id}/posts", status_code=201)
+    def account_post_add(account_id: int, body: PostUrl):
+        """Profil listesi alınamayan hesaplar için: tek video linkinden metrikleri çek."""
+        url = body.url.strip()
+        with conn() as c:
+            acc = c.execute("SELECT platform FROM accounts WHERE id = ?", (account_id,)).fetchone()
+            if acc is None:
+                raise HTTPException(404, "Hesap yok")
+            if not analytics.url_matches_platform(url, acc["platform"]):
+                raise HTTPException(400, f"Link {acc['platform']} adresi olmalı (https://…)")
+            try:
+                extract = syncer.extract if syncer and syncer.extract else (
+                    lambda u, n: analytics.ytdlp_extract(u, n, config.cookies_file))
+                analytics.save_info(c, account_id, extract(url, 1))
+            except analytics.AnalyticsError as e:
+                raise HTTPException(e.status, str(e))
+            except Exception as e:
+                raise HTTPException(502, f"Video bilgisi alınamadı: {str(e)[:200]}")
+            return analytics.overview(c)
 
     # ---- Kategori / alt başlık yönetimi ----
     def edit(fn, *args):

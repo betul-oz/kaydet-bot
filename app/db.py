@@ -4,6 +4,8 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+from . import analytics
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,6 +51,7 @@ def connect(path: str | Path) -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")  # bot, web ve indirme ayrı bağlantılarla çalışır
     conn.executescript(SCHEMA)
+    conn.executescript(analytics.SCHEMA)
     return conn
 
 

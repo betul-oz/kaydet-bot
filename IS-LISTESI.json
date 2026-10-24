@@ -60,6 +60,54 @@
       "ad": "Arayuz yeniden tasarimi (tek kategori = tek sayfa) ve kategori/alt baslik yonetimi (ekle, adlandir, sirala, sil)",
       "durum": "bitti",
       "model": "Opus 5.5"
+    },
+    {
+      "id": 11,
+      "ad": "Analiz temeli: Kaydet/Analiz anahtari, marka>hesap>gonderi modeli, YouTube yt-dlp cekimi, video linki ekleme, guc skoru",
+      "durum": "bitti",
+      "model": "Opus 5.5"
+    },
+    {
+      "id": 12,
+      "ad": "Analiz panolari: marka karsilastirma, zaman cizgisi (snapshots), en iyi gun/saat, sure ve format kirilimi",
+      "durum": "bekliyor",
+      "model": "Sonnet 5.5"
+    },
+    {
+      "id": 13,
+      "ad": "Panel verisi ice aktarma (TikTok/IG/YT Studio CSV veya JSON dosyasi) + profil linki listesi toplu ekleme",
+      "durum": "bekliyor",
+      "model": "Sonnet 5.5"
+    },
+    {
+      "id": 14,
+      "ad": "Resmi API baglayicilari: YouTube Analytics (OAuth, tutma egrisi), Instagram Graph API (erisim, kaydetme, paylasim); TikTok onayli API",
+      "durum": "bekliyor",
+      "model": "Opus 5.5"
+    },
+    {
+      "id": 15,
+      "ad": "Video ici analiz (yerel): indir, ffmpeg sahne/kesme sayisi, sessizlik ve ses seviyesi, faster-whisper metin + ilk 3 sn, OpenCV yuz/hareket, post_features tablosu",
+      "durum": "bekliyor",
+      "model": "Opus 5.5"
+    },
+    {
+      "id": 16,
+      "ad": "Hook ve kalite puanlama: ilk kareler + metin + ses ozellikleri Claude'a paket olarak kopyalanir (API anahtari yok), yorum post_reviews'a yazilir",
+      "durum": "bekliyor",
+      "model": "Opus 5.5"
+    },
+    {
+      "id": 17,
+      "ad": "Oneri motoru: tutan kaliplari (hook tipi, sure, konu, saat) cikar, marka basina 'bu hafta ne cek' listesi; hook-ve-yazi ve reels-icerik-takvimi ile baglanti",
+      "durum": "bekliyor",
+      "model": "Opus 5.5"
+    },
+    {
+      "id": 18,
+      "ad": "Zamanlanmis otomatik cekim (gunluk) ve degisim bildirimi (Telegram)",
+      "durum": "bekliyor",
+      "model": "Sonnet 5.5"
     }
   ]
 }
