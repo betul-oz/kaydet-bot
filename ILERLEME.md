@@ -1,5 +1,10 @@
 # ILERLEME
 
+## 2026-10-25 - Oturum 5 (devam): Analiz iyileştirmeleri (açık kaynak araştırması)
+- Yapıldı: 3 araştırmacı ajan açık kaynak repoları taradı. Bizde olmayanlardan uygulananlar (KARARLAR #50): biçime ve yaşa göre düzeltilmiş güç skoru, sağlam z, VSR, şüpheli trafik, saatlik izlenme/ivme, hesap içgörüleri (gün/saat/süre/başlık özelliği/hashtag/trend). Test: 155 geçti; tarayıcıda izole veriyle görüldü.
+- Sıradaki (araştırma raporundan): (1) video içi analiz iş 15: ffmpeg ebur128/silencedetect, PySceneDetect, OpenCV, faster-whisper (MIT), MediaPipe yüz, OCR; (2) hook etiketleri + deney takibi; (3) yeni outlier Telegram uyarısı; (4) zamanlanmış otomatik çekim (hız hesabı için en az iki çekim gerekir); (5) IG/TikTok profil listesi için instaloader / TikTok-Api (MIT, kırılgan).
+- Dokploy: panelde giriş bekleniyor (kullanıcı Chrome'unda girecek); imaj `ghcr.io/betul-oz/kaydet-bot:latest` hazır.
+
 ## 2026-10-25 - Oturum 5 (devam): Metinler sekmesi
 - Yapıldı: üst anahtara **Metinler** eklendi (kanal > başlık > alt başlık, videolardan ayrı başlık türü), `izle.py metin-aktar` ile yt (31) ve SafeKids (17) metinleri içeri alındı (KARARLAR #48-49). Metin okuyucu/yorum/revizyon sayfası zaten vardı, bu sekmede çalışıyor.
 - Test: 147 geçti. Tarayıcıda gerçek veriyle görüldü (kanal kartları, başlık/alt başlık bölümleri). Bu ek için ayrı denetçi çalıştırılmadı.

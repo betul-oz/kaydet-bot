@@ -76,7 +76,7 @@ def test_youtube_esitleme(conn):
     assert acc["followers"] == 1500 and acc["post_count"] == 3 and acc["median_views"] == 2000
     assert acc["best"]["ext_id"] == "a2"
     top = max(acc["posts"], key=lambda p: p["outlier"])
-    assert top["outlier"] == 4.5 and top["is_short"] is True
+    assert top["outlier"] == 9.0 and top["is_short"] is True  # taban: aynı biçimdeki DİĞER videoların medyanı
     assert [p["is_short"] for p in acc["posts"] if p["ext_id"] == "a3"] == [False]
 
 
@@ -163,7 +163,7 @@ def test_medyan_ekranla_guc_skoru_ayni(conn):
         analytics.upsert_post(conn, aid, ext_id=str(i), url="u", views=v)
     acc = analytics.overview(conn)["brands"][0]["accounts"][0]
     assert acc["median_views"] == 150
-    assert [p["outlier"] for p in acc["posts"] if p["views"] == 200] == [1.33]
+    assert [p["outlier"] for p in acc["posts"] if p["views"] == 200] == [2.0]  # kendisi tabana girmez: diğerlerinin medyanı 100
 
 
 def test_acilista_takili_calisiyor_serbest_birakilir(tmp_path):

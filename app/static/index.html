@@ -269,6 +269,11 @@ mark{background:#FFE58A;color:#241d00;border-radius:3px;padding:0 1px}mark.done{
 .rvcm textarea{width:100%;resize:vertical;background:transparent;border:1px solid var(--line);border-radius:8px;padding:6px 8px}.rvcm p{margin:0;overflow-wrap:anywhere}
 .rvcm .cmeta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}.rvcm .cmeta .btn{margin-left:auto}
 .cnote{background:var(--accent-soft);border-radius:8px;padding:6px 8px;font-size:13px}.quote2{border-left:3px solid var(--accent);padding-left:8px;color:var(--muted);font-size:14px}
+.insights{margin:8px 0 12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.insights .ihead{grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.insights .igrp.wide{grid-column:1/-1}
+.insights h4{margin:0 0 6px;font:600 13px var(--head)}.insights h4 small{color:var(--ok);font-weight:600;margin-left:6px}
+.icells{display:flex;flex-wrap:wrap;gap:6px}.icell{min-width:52px;border:1px solid var(--line);border-radius:10px;padding:4px 8px;display:flex;flex-direction:column;align-items:center;line-height:1.25}
+.icell span{font-weight:700}.icell small{color:var(--muted);font-size:11px}.icell.few{opacity:.55}
 </style>
 </head>
 <body>
@@ -510,9 +515,27 @@ function postsTable(a) {
     return `<tr><td><a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer">${esc((p.title || p.url).slice(0, 90))}</a></td>
       <td>${fday(p.posted_at)}</td><td class="num">${p.duration != null ? p.duration + ' sn' : '–'}</td>
       <td class="num">${fmt(p.views)}</td><td class="num">${fmt(p.likes)}</td><td class="num">${fmt(p.comments)}</td>
-      <td class="num">${p.engagement != null ? '%' + p.engagement : '–'}</td><td class="num">${o != null ? `<span class="x ${cls}">${o}×</span>` : '–'}</td></tr>`;
+      <td class="num">${p.engagement != null ? '%' + p.engagement : '–'}</td>
+      <td class="num">${o != null ? `<span class="x ${cls}" title="${esc(`Taban: ${p.base_scope === 'biçim' ? 'aynı biçim' : 'tüm hesap'} (${p.base_n} video) · z ${p.z ?? '–'} · izlenme/abone ${p.vsr ?? '–'} · yaş ${p.age_days ?? '–'} gün`)}">${o}×</span>${p.hot ? ' 🔥' : ''}${p.suspicious ? ' <span title="Beğeni/1000 izlenme çok düşük: reklam ya da şüpheli trafik olabilir">⚠</span>' : ''}${!p.reliable ? ' <span class="stat" title="Taban 10 videodan az">az veri</span>' : ''}` : '–'}</td>
+      <td class="num">${p.vph != null ? fmt(Math.round(p.vph)) + '/sa' : '–'}</td></tr>`;
   }).join('');
-  return `<div class="scrollx"><table class="tbl"><thead><tr><th>Video (en güçlüden)</th><th>Tarih</th><th class="num">Süre</th><th class="num">İzlenme</th><th class="num">Beğeni</th><th class="num">Yorum</th><th class="num">Etkileşim</th><th class="num" title="İzlenme ÷ hesabın medyanı">Güç</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `<div class="scrollx"><table class="tbl"><thead><tr><th>Video (en güçlüden)</th><th>Tarih</th><th class="num">Süre</th><th class="num">İzlenme</th><th class="num">Beğeni</th><th class="num">Yorum</th><th class="num">Etkileşim</th><th class="num" title="İzlenme ÷ aynı hesap ve aynı biçimdeki (Short/uzun) diğer olgun videoların medyanı">Güç</th><th class="num" title="Son iki ölçüm arasındaki saatlik izlenme">Hız</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+const xs = (v) => v == null ? '–' : v + '×';
+function insightsBlock(a) {
+  const I = a.insights; if (!I || !I.n_scored) return '';
+  const cell = (label, g) => `<div class="icell ${g.few ? 'few' : ''}" title="${g.n} video${g.few ? ' (az veri)' : ''}"><b>${esc(label)}</b><span>${xs(g.median)}</span><small>${g.n}</small></div>`;
+  const best = (list) => { const ok = list.filter(g => !g.few && g.median != null); return ok.length ? ok.reduce((m, g) => g.median > m.median ? g : m) : null; };
+  const bd = best(I.weekday), bh = best(I.hour);
+  const trend = I.trend ? `<span class="rvst ${I.trend.label === 'büyüyor' ? 'onaylandi' : I.trend.label === 'soğuyor' ? 'revizyon' : ''}" title="Son 30 gün medyan güç ${I.trend.recent}× (${I.trend.recent_n} video), önceki 90 gün ${I.trend.before}× (${I.trend.before_n} video)">Trend: ${I.trend.label}</span>` : '';
+  const feats = I.features.filter(f => f.lift != null).map(f => `<tr><td>${esc(f.feature)}</td><td class="num">${f.n_yes} / ${f.n_no}</td><td class="num">${xs(f.med_yes)} / ${xs(f.med_no)}</td><td class="num">${f.few ? '<span class="stat">az veri</span>' : `<span class="x ${f.lift >= 1.25 ? 'hot' : f.lift <= 0.8 ? 'cold' : ''}">${f.lift}×</span>`}</td></tr>`).join('');
+  return `<div class="insights"><div class="ihead"><b>İçgörüler</b>${trend}
+      <span class="stat">Değerler “güç” medyanı (1× = hesabın tipik videosu). Küçük örnekte kanıt değil, ipucu.</span></div>
+    <div class="igrp"><h4>Haftanın günü ${bd ? `<small>en iyi: ${esc(bd.day)}</small>` : ''}</h4><div class="icells">${I.weekday.map(g => cell(g.day, g)).join('')}</div></div>
+    ${I.hour.length ? `<div class="igrp"><h4>Saat dilimi ${bh ? `<small>en iyi: ${esc(bh.slot)}</small>` : ''}</h4><div class="icells">${I.hour.map(g => cell(g.slot, g)).join('')}</div></div>` : ''}
+    ${I.duration.length ? `<div class="igrp"><h4>Süre</h4><div class="icells">${I.duration.map(g => cell(g.bucket, g)).join('')}</div></div>` : ''}
+    ${feats ? `<div class="igrp wide"><h4>Başlık özelliği etkisi <small>var / yok</small></h4><div class="scrollx"><table class="tbl"><thead><tr><th>Özellik</th><th class="num">Video</th><th class="num">Medyan güç</th><th class="num">Etki</th></tr></thead><tbody>${feats}</tbody></table></div></div>` : ''}
+    ${I.hashtags.length ? `<div class="igrp wide"><h4>Hashtag</h4><div class="icells">${I.hashtags.map(h => `<div class="icell"><b>${esc(h.tag)}</b><span>${xs(h.median)}</span><small>${h.n}</small></div>`).join('')}</div></div>` : ''}</div>`;
 }
 function accountRow(a) {
   const st = a.sync_status === 'calisiyor' ? 'çekiliyor…' : a.sync_status === 'tamam' ? 'güncel: ' + fday(a.synced_at) : a.sync_status === 'hata' ? '' : 'henüz çekilmedi';
@@ -521,7 +544,7 @@ function accountRow(a) {
       ${a.platform === 'youtube' ? `<button class="btn sm" data-act="ansync" ${a.sync_status === 'calisiyor' ? 'disabled' : ''}>Verileri çek</button>` : ''}
       <button class="btn sm" data-act="anpost">Video linki ekle</button>
       <button class="btn sm ghost danger" data-act="andel" aria-label="Hesabı kaldır">✕</button></div>
-    ${a.sync_error ? `<div class="err">${esc(a.sync_error)}</div>` : ''}${a.post_count ? `<details data-accopen="${a.id}" ${S.anOpen.has(a.id) ? 'open' : ''}><summary class="stat" style="cursor:pointer;margin-top:6px">Videoları göster</summary>${postsTable(a)}</details>` : ''}</div>`;
+    ${a.sync_error ? `<div class="err">${esc(a.sync_error)}</div>` : ''}${a.post_count ? `<details data-accopen="${a.id}" ${S.anOpen.has(a.id) ? 'open' : ''}><summary class="stat" style="cursor:pointer;margin-top:6px">Videoları ve içgörüleri göster</summary>${insightsBlock(a)}${postsTable(a)}</details>` : ''}</div>`;
 }
 function renderAnalytics(r) {
   if (!S.an) { $('#view').innerHTML = '<p class="empty">Analiz verisi yükleniyor…</p>'; loadAnalytics().catch(() => {}); return; }
@@ -529,7 +552,7 @@ function renderAnalytics(r) {
   $('#view').innerHTML = `<div class="an"><div class="pagehead"><h1 tabindex="-1">${r.brand ? esc(r.brand) : 'Analiz'}</h1>
       <span class="meta">${S.an.brands.length} marka · ${S.an.brands.reduce((n, b) => n + b.accounts.length, 0)} hesap</span><span style="flex:1"></span>
       <button class="btn primary" data-act="anadd">+ Hesap ekle</button></div>
-    <p class="hint">Her markanın TikTok, YouTube ve Instagram hesapları burada. <b>Güç</b> = videonun izlenmesi ÷ o hesabın medyan izlenmesi (2× ve üstü yeşil: hesabın normalinin çok üstü).</p>` +
+    <p class="hint">Her markanın TikTok, YouTube ve Instagram hesapları burada. <b>Güç</b> = videonun izlenmesi ÷ aynı hesap ve aynı biçimdeki (Short/uzun) diğer olgun videoların medyanı; 2× ve üstü yeşil, 🔥 = çok tutan, ⚠ = şüpheli trafik, <b>Hız</b> = saatlik izlenme (iki çekim gerekir).</p>` +
     (brands.map(b => `<section class="brandbox"><h2>${esc(b.brand)}</h2>
       <div class="kpis"><div class="kpi"><b>${fmt(b.total_views)}</b><span>toplam izlenme (çekilen videolar)</span></div><div class="kpi"><b>${b.post_count}</b><span>video</span></div>
       <div class="kpi"><b>${b.accounts.length}</b><span>hesap</span></div></div>${b.accounts.map(accountRow).join('')}</section>`).join('')

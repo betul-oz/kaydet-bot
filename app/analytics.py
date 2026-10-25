@@ -8,6 +8,8 @@ import threading
 from datetime import datetime, timezone
 from typing import Callable
 
+from . import insights
+
 PLATFORMS = ("youtube", "tiktok", "instagram")
 SHORT_MAX_SECONDS = 180
 # profil adı olamayacak yol parçaları (video/kanal-kimliği linki yapıştırılmış demektir)
@@ -156,14 +158,17 @@ def overview(conn: sqlite3.Connection) -> dict:
     posts_by_acc: dict[int, list[dict]] = {}
     for r in conn.execute("SELECT * FROM posts ORDER BY posted_at DESC, id DESC"):
         posts_by_acc.setdefault(r["account_id"], []).append(dict(r))
+    snaps_by_post: dict[int, list[dict]] = {}
+    for r in conn.execute("SELECT post_id, taken_at, views FROM snapshots WHERE taken_at >= datetime('now', '-30 days') ORDER BY taken_at"):
+        snaps_by_post.setdefault(r["post_id"], []).append(dict(r))
     brands: dict[str, dict] = {}
     for a in accounts:
         posts = posts_by_acc.get(a["id"], [])
-        scores = outlier_scores([p["views"] for p in posts])
-        for p, sc in zip(posts, scores):
-            p["outlier"] = sc
-            p["engagement"] = engagement_rate(p["views"], p["likes"], p["comments"])
-            p["is_short"] = p["duration"] is not None and p["duration"] <= SHORT_MAX_SECONDS
+        # güç skoru: aynı hesap + aynı biçim, olgun videolar; z, VSR, şüpheli trafik, hız (bkz. insights.py)
+        insights.enrich_posts(posts, platform=a["platform"], followers=a["followers"])
+        for p in posts:
+            p.update(insights.velocity(snaps_by_post.get(p["id"], [])))
+        a["insights"] = insights.account_insights(posts)
         views = [p["views"] for p in posts if p["views"] is not None]
         known = [v for v in views if v]  # güç skorunun paydasıyla aynı medyan
         a["post_count"] = len(posts)
