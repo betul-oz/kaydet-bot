@@ -333,7 +333,7 @@ async function load(force) {
   const [st, cards, todos] = await Promise.all([api('GET', '/api/state'), api('GET', '/api/cards'), api('GET', '/api/todos')]);
   const sig = JSON.stringify([st, cards, todos]);
   if (sig === S.sig && !force) return;
-  S.sig = sig; S.cats = st.categories; S.items = st.items; S.dl = st.downloads_enabled; S.cards = cards; S.todos = todos; render();
+  S.loaded = true; S.sig = sig; S.cats = st.categories; S.items = st.items; S.dl = st.downloads_enabled; S.cards = cards; S.todos = todos; render();
 }
 
 /* ---------- Yönlendirme: #/k/<kategori> | #/planlar ---------- */
@@ -481,7 +481,7 @@ function renderPlans() {
 }
 
 function render() {
-  if (!S.cats.length) return;
+  if (!S.loaded) return;  // ilk veri gelmeden çizme (kategori yoksa da çizilir: yayındaki sunucuda Kaydet kategorileri boş olabilir)
   const r = route();
   document.querySelector('.app').dataset.view = r.view;
   document.querySelector('.app').dataset.mode = ['analytics', 'channels', 'board'].includes(r.view) ? 'analiz' : RVVIEWS.includes(r.view) ? 'izle' : 'kaydet';
@@ -500,6 +500,7 @@ function render() {
   else if (r.view === 'notes') renderNotes();
   else if (S.q || S.plat) renderSearch();
   else if (r.view === 'orphans') renderOrphans();
+  else if (!r.cat) view.innerHTML = '<p class="empty">Henüz kategori yok. Soldaki “+ Yeni kategori” ile ekle; video ve metin incelemesi için üstten <a href="#/izle">Videolar</a> ya da <a href="#/metin">Metinler</a>’e geç.</p>';
   else { view.className = 'view cat'; renderCategory(r.cat); }
   if (hadLanesFocus) document.querySelector('.lanes')?.focus({preventScroll: true});  // yenilemede odak kaybolmasın
 }
