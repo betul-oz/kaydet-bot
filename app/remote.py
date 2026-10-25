@@ -62,7 +62,15 @@ def run(args, abs_) -> int:
             path = abs_(args.dosya)
             r = _call("POST", "/api/hub/docs", {"title": args.baslik, "content": read_text(path), "brand": args.marka,
                                                "category": args.kategori, "source_path": path})
-            print(f"metin {r['id']} {'eklendi' if r['new'] else 'zaten kayıtlı'}: {_server()}/#/izle/m/{r['id']}")
+            print(f"metin {r['id']} {'eklendi' if r['new'] else 'zaten kayıtlı'}: {_server()}/#/metin/m/{r["id"]}")
+        elif args.cmd == "metin-aktar":
+            from .izle_cli import collect_docs
+            items = collect_docs(abs_(args.klasor), args.haric, args.derinlik)
+            new = 0
+            for t, p, c in items:
+                new += bool(_call("POST", "/api/hub/docs", {"title": t, "content": read_text(p), "brand": args.marka,
+                                                           "category": c, "source_path": p})["new"])
+            print(f"{len(items)} dosya tarandı, {new} yeni metin eklendi: {_server()}/#/metin")
         elif args.cmd == "metin-guncelle":
             _call("POST", f"/api/hub/docs/{args.id}/update", {"content": read_text(abs_(args.dosya)), "note": args.note, "force": args.zorla})
             print("metin güncellendi; açık yorumlar uygulandı olarak işaretlendi")

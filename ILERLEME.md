@@ -1,5 +1,11 @@
 # ILERLEME
 
+## 2026-10-25 - Oturum 5 (devam): Metinler sekmesi
+- Yapıldı: üst anahtara **Metinler** eklendi (kanal > başlık > alt başlık, videolardan ayrı başlık türü), `izle.py metin-aktar` ile yt (31) ve SafeKids (17) metinleri içeri alındı (KARARLAR #48-49). Metin okuyucu/yorum/revizyon sayfası zaten vardı, bu sekmede çalışıyor.
+- Test: 147 geçti. Tarayıcıda gerçek veriyle görüldü (kanal kartları, başlık/alt başlık bölümleri). Bu ek için ayrı denetçi çalıştırılmadı.
+- Uygulama: `python -m app` bu oturumun arka plan görevi olarak açık; kalıcı olması için kullanıcı `baslat.bat`'ı açık bırakmalı (zamanlanmış görev kurulumu izin sistemince reddedildi).
+- Not: yt kanalı adı `yt` olarak açıldı; kullanıcı panelden yeniden adlandırabilir (örn. Onun Yerinde).
+
 ## 2026-10-25 - Oturum 5 (devam): İş 21 bitti (kanal ağacı, metin inceleme, yayın hazırlığı)
 - Yapıldı: Videolar modu kanal > başlık > alt başlık ağacına geçti (sol ray yalnızca ağaç + sayı; kanal sayfasında bölümler; başlık/alt başlık oluştur-adlandır-sil; taşı), ✕ ile temizle / geri al, metin inceleme (cümle yorumu, düzenleme, revizyon), yayın katmanı (şifre, token, yükleme, Dockerfile, docker-compose, `docs/DEPLOY.md`). KARARLAR #43-47.
 - Test: 144 geçti. Denetçi (Opus) bulguları düzeltildi: giriş gövde sınırı, IP başına kilit, tünel için de şifre, metin-guncelle kullanıcı düzenlemesini ezmez (--zorla), çakışmada taslak korunur, kanalsız temizlenenler geri alınır, sunucu dosya temizliği, SQLite uyumu, tek seferlik göç, https zorunlu. Bilerek bırakılan: ad karşılaştırmada Türkçe İ/ı, çıkışta oturum iptali yok. Tarayıcıda izole veriyle görüldü: kanal/alt başlık sayfası, temizle/geri al, metinde seçim→yorum→revizyon→`metin-guncelle`→sayfa kendiliğinden güncellendi. Docker derlemesi bu makinede (docker yok) DENENMEDİ; Dokploy'da ilk derleme gerçek sınav.

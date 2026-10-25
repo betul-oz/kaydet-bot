@@ -16,6 +16,7 @@ Instagram/TikTok/YouTube'da kaydedilen videoları Telegram botuyla kategorileyen
 - Bu hesapta (hangi proje olursa olsun) üretilen her video ve yazılan her metin (senaryo, açıklama, plan) bitince incelemeye kaydedilir:
   - Video: `python C:\Users\ozkan\Desktop\smDataAnalyze\izle.py ekle <dosya> --baslik "..." --marka "<Kanal>" --kategori "<Başlık>[/<Alt başlık>]" --format yatay|short [--platform youtube --proje <klasör>]`
   - Metin: `python C:\Users\ozkan\Desktop\smDataAnalyze\izle.py metin-ekle <dosya.md> --baslik "..." --marka "<Kanal>" --kategori "<Başlık>[/<Alt başlık>]"`
+  - Klasördeki metinleri toplu: `izle.py metin-aktar <klasör> --marka "<Kanal>" [--haric a,b]` (alt klasör adı başlık olur). Metin sekmesi: `#/metin`.
   - Çıkan adresi kullanıcıya ver. Kanal = marka/kanal adı (örn. Flag Derby), başlık = konu grubu (örn. Altyazı yönleri), alt başlık = gerekiyorsa daha ince grup.
 - Oturum başında `python izle.py bekleyen`: "Değişikliğe başla" denmiş video (zaman damgalı not) ve metin (cümle yorumu) revizyonlarını yazar. Uygula, sonra `izle.py yeni-surum <id> <yeni video>` veya `izle.py metin-guncelle <id> <dosya> --not "ne yaptın"`. Kullanıcı metni arayüzde düzenlediyse önce `izle.py metin-al <id>`.
 - `KAYDET_SERVER` + `KAYDET_TOKEN` ortam değişkeni varsa komutlar yayındaki sunucuya yazar (docs/DEPLOY.md); yoksa yerel veritabanına.

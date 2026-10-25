@@ -175,3 +175,48 @@ def test_hayalet_kanal_olmaz_ve_kanalsiz_ogeler_listelenir(conn, vid):
     assert [c["name"] for c in channels.channel_list(conn)] == ["A B"]
     channels.migrate(conn)
     assert len(channels.channel_list(conn)) == 1
+
+
+def test_video_ve_metin_basliklari_ayri_tutulur(conn, vid):
+    v, _ = review.add_video(conn, str(vid), "V", brand="K", category="Genel")
+    d, _ = texts.add_doc(conn, "D", "x", brand="K", category="Genel")  # aynı ad, ayrı tür
+    ch = channels.channel_list(conn)[0]
+    assert sorted((c["name"], c["kind"]) for c in ch["cats"]) == [("Genel", "m"), ("Genel", "v")]
+    vc = next(c["id"] for c in ch["cats"] if c["kind"] == "v")
+    with pytest.raises(channels.ChannelError):
+        channels.place(conn, "rv_docs", d, channel_id=None, cat_id=vc, set_channel=False, set_cat=True)  # metne video başlığı olmaz
+    sub = channels.add_cat(conn, ch["id"], "Alt", next(c["id"] for c in ch["cats"] if c["kind"] == "m"))
+    assert next(c for c in channels.channel_list(conn)[0]["cats"] if c["id"] == sub)["kind"] == "m"  # alt başlık üstün türünü alır
+
+
+def test_eski_basliklar_kullanima_gore_tur_alir(tmp_path):
+    import sqlite3
+    path = tmp_path / "o.db"
+    with closing(db.connect(path)) as c:
+        review.add_video(c, str(tmp_path / "x.mp4") if (tmp_path / "x.mp4").write_bytes(b"0") else "", "V", brand="K", category="Vb")
+        texts.add_doc(c, "D", "x", brand="K", category="Mb")
+        c.execute("UPDATE rv_cats SET kind = 'v'")  # eski durum: tür ayrımı yoktu
+    channels._migrated.clear()
+    c2 = sqlite3.connect(path)
+    c2.row_factory = sqlite3.Row
+    c2.execute("ALTER TABLE rv_cats RENAME TO rv_cats_x")
+    c2.execute("CREATE TABLE rv_cats (id INTEGER PRIMARY KEY, channel_id INTEGER NOT NULL, parent_id INTEGER, name TEXT NOT NULL, position INTEGER NOT NULL DEFAULT 0)")
+    c2.execute("INSERT INTO rv_cats SELECT id, channel_id, parent_id, name, position FROM rv_cats_x")
+    c2.execute("DROP TABLE rv_cats_x")
+    c2.commit(); c2.close()
+    with closing(db.connect(path)) as c:
+        assert sorted((r["name"], r["kind"]) for r in c.execute("SELECT name, kind FROM rv_cats")) == [("Mb", "m"), ("Vb", "v")]
+
+
+def test_metin_aktar_klasorden_baslik_ve_alt_baslik(conn, tmp_path):
+    from app import izle_cli
+    (tmp_path / "p" / "v1" / "ses").mkdir(parents=True)
+    (tmp_path / "p" / "node_modules").mkdir()
+    (tmp_path / "p" / "not-1.md").write_text("a", encoding="utf-8")
+    (tmp_path / "p" / "v1" / "metin_1.md").write_text("b", encoding="utf-8")
+    (tmp_path / "p" / "v1" / "ses" / "rapor.txt").write_text("c", encoding="utf-8")
+    (tmp_path / "p" / "node_modules" / "x.md").write_text("d", encoding="utf-8")
+    (tmp_path / "p" / "arastirma").mkdir()
+    (tmp_path / "p" / "arastirma" / "y.md").write_text("e", encoding="utf-8")
+    items = izle_cli.collect_docs(str(tmp_path / "p"), exclude="Arastirma")
+    assert sorted((t, c) for t, _, c in items) == [("metin 1", "v1"), ("not 1", ""), ("rapor", "v1/ses")]

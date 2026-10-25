@@ -103,7 +103,7 @@ def test_izle_py_uzak_sunucuya_yukler_ve_revizyonu_okur(live, tmp_path, monkeypa
     assert izle_cli.main(["ekle", "v.mp4", "--baslik", "Uzak video", "--marka", "K", "--kategori", "A/B"]) == 0
     assert izle_cli.main(["metin-ekle", "s.md", "--baslik", "Uzak metin", "--marka", "K"]) == 0
     out = capsys.readouterr().out
-    assert "/#/izle/1" in out and "/#/izle/m/1" in out
+    assert "/#/izle/1" in out and "/#/metin/m/1" in out
     with closing(db.connect(cfg.db_path)) as c:
         from app import review, texts
         v = review.get_video(c, 1)

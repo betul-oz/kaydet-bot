@@ -90,7 +90,7 @@ def add_video(conn: sqlite3.Connection, path: str, title: str, *, brand: str = "
     brand = " ".join(brand.split())
     try:
         ch = channels.ensure_channel(conn, brand)
-        cat = channels.ensure_cat(conn, ch, category) if category.strip() and ch else None
+        cat = channels.ensure_cat(conn, ch, category, "v") if category.strip() and ch else None
     except channels.ChannelError as e:
         raise ReviewError(str(e))
     cur = conn.execute("INSERT INTO rv_videos (title, brand, kind, platform, project_dir, channel_id, cat_id) VALUES (?, ?, ?, ?, ?, ?, ?)",

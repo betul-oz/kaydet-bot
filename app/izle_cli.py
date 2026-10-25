@@ -5,6 +5,7 @@
   python izle.py yeni-surum <video_id> <video>
   python izle.py metin-ekle <dosya.md> --baslik "..." --marka "Kanal" [--kategori "Başlık/Alt başlık"]
   python izle.py metin-guncelle <metin_id> <dosya.md> [--not "ne yaptın"] [--zorla]
+  python izle.py metin-aktar <klasör> --marka "Kanal" [--haric klasor1,klasor2] [--derinlik 2]   # klasördeki .md/.txt dosyaları toplu ekler
   python izle.py metin-al <metin_id> [--cikti <dosya>]      # arayüzde düzenlenen güncel metni dosyaya yazar
   python izle.py bekleyen                                   # "Değişikliğe başla" denmiş video ve metinler
 """
@@ -29,9 +30,29 @@ def parser() -> argparse.ArgumentParser:
     m = sub.add_parser("metin-ekle"); m.add_argument("dosya"); m.add_argument("--baslik", required=True)
     m.add_argument("--marka", default=""); m.add_argument("--kategori", default="")
     g = sub.add_parser("metin-guncelle"); g.add_argument("id", type=int); g.add_argument("dosya"); g.add_argument("--not", dest="note", default=""); g.add_argument("--zorla", action="store_true")
+    ak = sub.add_parser("metin-aktar"); ak.add_argument("klasor"); ak.add_argument("--marka", required=True)
+    ak.add_argument("--haric", default=""); ak.add_argument("--derinlik", type=int, default=2, choices=(0, 1, 2))
     al = sub.add_parser("metin-al"); al.add_argument("id", type=int); al.add_argument("--cikti", default="")
     sub.add_parser("bekleyen")
     return ap
+
+
+SKIP_DIRS = {"veri", "node_modules", "__pycache__", "out", "dist", "venv"}
+
+
+def collect_docs(root: str, exclude: str = "", depth: int = 2) -> list[tuple[str, str, str]]:
+    """(başlık, dosya yolu, kategori yolu): alt klasör adları başlık/alt başlık olur (en çok 2 düzey)."""
+    skip = {x.strip().lower() for x in exclude.split(",") if x.strip()}
+    base, out = Path(root), []
+    for cur, dirs, files in os.walk(base):
+        dirs[:] = sorted(d for d in dirs if not d.startswith(".") and d.lower() not in SKIP_DIRS | skip)
+        for f in sorted(files):
+            p = Path(cur) / f
+            if p.suffix.lower() not in (".md", ".txt") or p.stat().st_size > texts.MAX_DOC or p.stem.lower() in skip or f.lower() in skip:
+                continue
+            parts = p.relative_to(base).parts[:-1]
+            out.append((p.stem.replace("-", " ").replace("_", " "), str(p.resolve()), "/".join(parts[:depth])))
+    return out
 
 
 def read_text(path: str) -> str:
@@ -70,7 +91,11 @@ def main(argv: list[str] | None = None) -> int:
         elif args.cmd == "metin-ekle":
             path = abs_(args.dosya)
             did, new = texts.add_doc(conn, args.baslik, read_text(path), brand=args.marka, category=args.kategori, source_path=path)
-            print(f"metin {did} {'eklendi' if new else 'zaten kayıtlı'}: {url}/m/{did}")
+            print(f"metin {did} {'eklendi' if new else 'zaten kayıtlı'}: {url.replace('/izle', '/metin')}/m/{did}")
+        elif args.cmd == "metin-aktar":
+            items = collect_docs(abs_(args.klasor), args.haric, args.derinlik)
+            new = sum(texts.add_doc(conn, t, read_text(p), brand=args.marka, category=c, source_path=p)[1] for t, p, c in items)
+            print(f"{len(items)} dosya tarandı, {new} yeni metin eklendi: {url.replace('/izle', '/metin')}")
         elif args.cmd == "metin-guncelle":
             texts.apply_update(conn, args.id, read_text(abs_(args.dosya)), args.note, force=args.zorla)
             print("metin güncellendi; açık yorumlar uygulandı olarak işaretlendi")

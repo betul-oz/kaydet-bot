@@ -83,7 +83,7 @@ def add_doc(conn: sqlite3.Connection, title: str, content: str, *, brand: str = 
             return row["id"], False
     try:
         ch = channels.ensure_channel(conn, brand)
-        cat = channels.ensure_cat(conn, ch, category) if category.strip() and ch else None
+        cat = channels.ensure_cat(conn, ch, category, "m") if category.strip() and ch else None
     except channels.ChannelError as e:
         raise TextError(str(e))
     cur = conn.execute("INSERT INTO rv_docs (title, content, source_path, channel_id, cat_id) VALUES (?, ?, ?, ?, ?)",

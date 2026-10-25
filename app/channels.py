@@ -13,11 +13,13 @@ CREATE TABLE IF NOT EXISTS rv_cats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     channel_id INTEGER NOT NULL REFERENCES rv_channels(id) ON DELETE CASCADE,
     parent_id INTEGER REFERENCES rv_cats(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL DEFAULT 'v',
     name TEXT NOT NULL COLLATE NOCASE,
     position INTEGER NOT NULL DEFAULT 0
 );
 """
 ITEM_TABLES = ("rv_videos", "rv_docs")
+KIND_OF = {"rv_videos": "v", "rv_docs": "m"}  # başlıklar videolar ('v') ve metinler ('m') için ayrı tutulur
 
 
 class ChannelError(Exception):
@@ -47,6 +49,12 @@ def migrate(conn: sqlite3.Connection) -> None:
 
 
 def _migrate(conn: sqlite3.Connection) -> None:
+    ccols = {r["name"] for r in conn.execute("PRAGMA table_info(rv_cats)")}
+    if "kind" not in ccols:
+        conn.execute("ALTER TABLE rv_cats ADD COLUMN kind TEXT NOT NULL DEFAULT 'v'")
+        # yalnızca metinlerin kullandığı eski başlıklar metin başlığı olur
+        conn.execute("UPDATE rv_cats SET kind = 'm' WHERE id IN (SELECT cat_id FROM rv_docs WHERE cat_id IS NOT NULL) "
+                     "AND id NOT IN (SELECT cat_id FROM rv_videos WHERE cat_id IS NOT NULL)")
     cols = {r["name"] for r in conn.execute("PRAGMA table_info(rv_videos)")}
     for col, ddl in (("channel_id", "INTEGER"), ("cat_id", "INTEGER"), ("dismissed", "INTEGER NOT NULL DEFAULT 0")):
         if col not in cols:
@@ -72,19 +80,19 @@ def ensure_channel(conn: sqlite3.Connection, name: str) -> int | None:
     return conn.execute("INSERT INTO rv_channels (name, position) VALUES (?, ?)", (name, pos)).lastrowid
 
 
-def _find_cat(conn: sqlite3.Connection, channel_id: int, parent_id: int | None, name: str, skip: int = 0):
-    return conn.execute("SELECT id FROM rv_cats WHERE channel_id = ? AND parent_id IS ? AND name = ? AND id != ?",
-                        (channel_id, parent_id, name, skip)).fetchone()
+def _find_cat(conn: sqlite3.Connection, channel_id: int, parent_id: int | None, name: str, kind: str, skip: int = 0):
+    return conn.execute("SELECT id FROM rv_cats WHERE channel_id = ? AND parent_id IS ? AND name = ? AND kind = ? AND id != ?",
+                        (channel_id, parent_id, name, kind, skip)).fetchone()
 
 
-def _new_cat(conn: sqlite3.Connection, channel_id: int, parent_id: int | None, name: str) -> int:
+def _new_cat(conn: sqlite3.Connection, channel_id: int, parent_id: int | None, name: str, kind: str) -> int:
     pos = conn.execute("SELECT COALESCE(MAX(position), 0) + 1 FROM rv_cats WHERE channel_id = ? AND parent_id IS ?",
                        (channel_id, parent_id)).fetchone()[0]
-    return conn.execute("INSERT INTO rv_cats (channel_id, parent_id, name, position) VALUES (?, ?, ?, ?)",
-                        (channel_id, parent_id, name, pos)).lastrowid
+    return conn.execute("INSERT INTO rv_cats (channel_id, parent_id, name, position, kind) VALUES (?, ?, ?, ?, ?)",
+                        (channel_id, parent_id, name, pos, kind)).lastrowid
 
 
-def ensure_cat(conn: sqlite3.Connection, channel_id: int, path: str) -> int:
+def ensure_cat(conn: sqlite3.Connection, channel_id: int, path: str, kind: str = "v") -> int:
     """'Başlık' veya 'Başlık/Alt başlık' (en çok 2 düzey); yoksa oluşturur, son düzeyin id'sini döner."""
     parts = [p for p in (x.strip() for x in path.split("/")) if p]
     if not parts or len(parts) > 2:
@@ -92,8 +100,8 @@ def ensure_cat(conn: sqlite3.Connection, channel_id: int, path: str) -> int:
     parent = None
     for p in parts:
         name = clean_name(p, "Başlık adı")
-        row = _find_cat(conn, channel_id, parent, name)
-        parent = row["id"] if row else _new_cat(conn, channel_id, parent, name)
+        row = _find_cat(conn, channel_id, parent, name, kind)
+        parent = row["id"] if row else _new_cat(conn, channel_id, parent, name, kind)
     return parent
 
 
@@ -127,29 +135,33 @@ def delete_channel(conn: sqlite3.Connection, channel_id: int) -> None:
     conn.commit()
 
 
-def add_cat(conn: sqlite3.Connection, channel_id: int, name: str, parent_id: int | None = None) -> int:
+def add_cat(conn: sqlite3.Connection, channel_id: int, name: str, parent_id: int | None = None, kind: str = "v") -> int:
+    if kind not in ("v", "m"):
+        raise ChannelError("Tür v (video) ya da m (metin) olmalı")
     if not conn.execute("SELECT 1 FROM rv_channels WHERE id = ?", (channel_id,)).fetchone():
         raise ChannelError("Kanal yok", 404)
     if parent_id is not None:
-        p = conn.execute("SELECT channel_id, parent_id FROM rv_cats WHERE id = ?", (parent_id,)).fetchone()
+        p = conn.execute("SELECT channel_id, parent_id, kind FROM rv_cats WHERE id = ?", (parent_id,)).fetchone()
+        if p is not None:
+            kind = p["kind"]
         if p is None or p["channel_id"] != channel_id:
             raise ChannelError("Üst başlık bu kanalda yok", 404)
         if p["parent_id"] is not None:
             raise ChannelError("Alt başlığın altına yeni düzey eklenemez (en çok Başlık > Alt başlık)")
     name = clean_name(name, "Başlık adı")
-    if _find_cat(conn, channel_id, parent_id, name):
+    if _find_cat(conn, channel_id, parent_id, name, kind):
         raise ChannelError("Bu ad burada zaten var", 409)
-    cid = _new_cat(conn, channel_id, parent_id, name)
+    cid = _new_cat(conn, channel_id, parent_id, name, kind)
     conn.commit()
     return cid
 
 
 def rename_cat(conn: sqlite3.Connection, cat_id: int, name: str) -> None:
     name = clean_name(name, "Başlık adı")
-    row = conn.execute("SELECT channel_id, parent_id FROM rv_cats WHERE id = ?", (cat_id,)).fetchone()
+    row = conn.execute("SELECT channel_id, parent_id, kind FROM rv_cats WHERE id = ?", (cat_id,)).fetchone()
     if row is None:
         raise ChannelError("Başlık yok", 404)
-    if _find_cat(conn, row["channel_id"], row["parent_id"], name, cat_id):
+    if _find_cat(conn, row["channel_id"], row["parent_id"], name, row["kind"], cat_id):
         raise ChannelError("Bu adda başka bir başlık var", 409)
     conn.execute("UPDATE rv_cats SET name = ? WHERE id = ?", (name, cat_id))
     conn.commit()
@@ -178,9 +190,11 @@ def place(conn: sqlite3.Connection, table: str, item_id: int, *, channel_id: int
     if ch is not None and not conn.execute("SELECT 1 FROM rv_channels WHERE id = ?", (ch,)).fetchone():
         raise ChannelError("Kanal yok", 404)
     if cat is not None:
-        c = conn.execute("SELECT channel_id FROM rv_cats WHERE id = ?", (cat,)).fetchone()
+        c = conn.execute("SELECT channel_id, kind FROM rv_cats WHERE id = ?", (cat,)).fetchone()
         if c is None or c["channel_id"] != ch:
             raise ChannelError("Başlık bu kanala ait değil", 400)
+        if c["kind"] != KIND_OF[table]:
+            raise ChannelError("Video başlığına metin (ya da tersi) konamaz", 400)
     name = conn.execute("SELECT name FROM rv_channels WHERE id = ?", (ch,)).fetchone() if ch is not None else None
     extra = ", brand = ?" if table == "rv_videos" else ""
     args = [ch, cat] + ([name["name"] if name else ""] if table == "rv_videos" else []) + [item_id]
@@ -193,6 +207,6 @@ def channel_list(conn: sqlite3.Connection) -> list[dict]:
     for c in conn.execute("SELECT * FROM rv_channels ORDER BY position, id"):
         d = dict(c)
         d["cats"] = [dict(x) for x in conn.execute(
-            "SELECT id, name, parent_id FROM rv_cats WHERE channel_id = ? ORDER BY position, id", (c["id"],))]
+            "SELECT id, name, parent_id, kind FROM rv_cats WHERE channel_id = ? ORDER BY position, id", (c["id"],))]
         out.append(d)
     return out

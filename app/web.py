@@ -153,6 +153,7 @@ class NameBody(BaseModel):
 
 class CatCreate(NameBody):
     parent_id: int | None = None
+    kind: str = Field("v", max_length=1)
 
 
 class ItemPatch2(BaseModel):
@@ -666,7 +667,7 @@ def create_app(config: Config, categories: Categories,
     @app.post("/api/review/channels/{channel_id}/cats", status_code=201)
     def cat_add_(channel_id: int, body: CatCreate):
         with conn() as c:
-            ch_call(channels.add_cat, c, channel_id, body.name, body.parent_id)
+            ch_call(channels.add_cat, c, channel_id, body.name, body.parent_id, body.kind)
             return review.tree(c)
 
     @app.patch("/api/review/cats/{cat_id}")

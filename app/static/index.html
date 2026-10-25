@@ -288,7 +288,7 @@ mark{background:#FFE58A;color:#241d00;border-radius:3px;padding:0 1px}mark.done{
       <input class="field" type="search" id="q" placeholder="Tüm kategorilerde ara…">
       <label class="sr" for="plat">Platform</label>
       <select class="field" id="plat"><option value="">Tüm platformlar</option><option>instagram</option><option>tiktok</option><option>youtube</option></select>
-      <nav class="modeswitch" aria-label="Görünüm"><a href="#/" id="swkaydet">Kaydet</a><a href="#/analiz" id="swanaliz">Analiz</a><a href="#/izle" id="swizle">Videolar</a></nav>
+      <nav class="modeswitch" aria-label="Görünüm"><a href="#/" id="swkaydet">Kaydet</a><a href="#/analiz" id="swanaliz">Analiz</a><a href="#/izle" id="swizle">Videolar</a><a href="#/metin" id="swmetin">Metinler</a></nav>
     </header>
     <main class="view" id="view"></main>
   </div>
@@ -335,9 +335,9 @@ async function load(force) {
 function route() {
   let h = ''; try { h = decodeURIComponent(location.hash || ''); } catch (e) {}
   if (h === '#/analiz' || h.startsWith('#/analiz/')) return {view: 'analytics', brand: h.slice(9).replace(/^\//, '')};
-  if (h === '#/izle') return {view: 'reviews'};
-  const km = h.match(/^#\/izle\/k\/(\d+)(?:\/(\d+))?$/); if (km) return {view: 'channel', ch: +km[1], cat: +(km[2] || 0)};
-  const mm = h.match(/^#\/izle\/m\/(\d+)$/); if (mm) return {view: 'doc', id: +mm[1]};
+  if (h === '#/izle' || h === '#/metin') return {view: 'reviews', sec: h.slice(2)};
+  const km = h.match(/^#\/(izle|metin)\/k\/(\d+)(?:\/(\d+))?$/); if (km) return {view: 'channel', sec: km[1], ch: +km[2], cat: +(km[3] || 0)};
+  const mm = h.match(/^#\/(?:izle|metin)\/m\/(\d+)$/); if (mm) return {view: 'doc', sec: 'metin', id: +mm[1]};
   const rm = h.match(/^#\/izle\/(\d+)$/); if (rm) return {view: 'reviewer', id: +rm[1]};
   if (h === '#/kanallar') return {view: 'channels'};
   if (h === '#/pano') return {view: 'board'};
@@ -384,7 +384,7 @@ const matches = (it) => (!S.plat || it.platform === S.plat) &&
 function renderNav(r) {
   const iz = RVVIEWS.includes(r.view), an = ['analytics', 'channels', 'board'].includes(r.view);
   $('#swkaydet').setAttribute('aria-current', String(!an && !iz)); $('#swanaliz').setAttribute('aria-current', String(an));
-  $('#swizle').setAttribute('aria-current', String(iz));
+  const sec = rvSec(r); $('#swizle').setAttribute('aria-current', String(iz && sec === 'izle')); $('#swmetin').setAttribute('aria-current', String(iz && sec === 'metin'));
   $('#catadd').hidden = an || iz; $('#extranav').hidden = an || iz;
   if (iz) { renderReviewNav(r); return; }
   if (an) {
@@ -487,7 +487,7 @@ function render() {
   if (r.view === 'analytics') renderAnalytics(r);
   else if (r.view === 'channels') renderChannels();
   else if (r.view === 'board') renderBoard();
-  else if (r.view === 'reviews') renderReviews();
+  else if (r.view === 'reviews') renderReviews(r);
   else if (r.view === 'channel') renderChannel(r);
   else if (r.view === 'doc') renderDoc(r);
   else if (r.view === 'reviewer') renderReviewer(r);
@@ -871,7 +871,9 @@ const rvStore = {get(k, d) { try { const v = localStorage.getItem('kaydet.rv.' +
   set(k, v) { try { localStorage.setItem('kaydet.rv.' + k, JSON.stringify(v)); } catch (e) {} }};
 S.rv.tree = null; S.rv.open = new Set(rvStore.get('open', [])); S.rv.f = rvStore.get('f', 'hepsi'); S.rv.done = rvStore.get('done', false);
 const rvItems = (t) => [...t.videos.map(v => ({...v, type: 'v'})), ...t.docs.map(d => ({...d, type: 'm'}))];
-const rvHref = (it) => it.type === 'v' ? `#/izle/${it.id}` : `#/izle/m/${it.id}`;
+const rvHref = (it) => it.type === 'v' ? `#/izle/${it.id}` : `#/metin/m/${it.id}`;
+const rvSec = (r) => r.sec || (r.view === 'doc' ? 'metin' : 'izle');  // izle = videolar, metin = metinler
+const rvType = (sec) => sec === 'metin' ? 'm' : 'v';
 const rvChName = (t, id) => (t.channels.find(c => c.id === id) || {}).name || '';
 // Başlıkta kanal adı tekrarını at: "Flag Derby · Altyazı yönü a" -> "Altyazı yönü a"
 function rvShort(t, it) {
@@ -879,11 +881,11 @@ function rvShort(t, it) {
   if (n && s.toLowerCase().startsWith(n.toLowerCase())) s = s.slice(n.length).replace(/^\s*[·\-–—:|]\s*/, '') || it.title;
   return s;
 }
-function rvCounts(t) {
+function rvCounts(t, type) {
   const m = new Map(), add = (k) => m.set(k, (m.get(k) || 0) + 1), par = new Map();
   t.channels.forEach(c => c.cats.forEach(k => par.set(k.id, k.parent_id)));
   for (const it of rvItems(t)) {
-    if (it.dismissed) continue;
+    if (it.dismissed || (type && it.type !== type)) continue;
     add('c' + (it.channel_id || 0));
     if (it.cat_id) { add('k' + it.cat_id); const p = par.get(it.cat_id); if (p) add('k' + p); }
   }
@@ -909,42 +911,44 @@ async function loadReviewList(force) {
   }
 }
 async function rvTree(method, url, body) { S.rv.seq++; S.rv.tree = await api(method, url, body); S.rv.sig = JSON.stringify(S.rv.tree); render(); }
-const rvHome = (it) => `#/izle/k/${(it && it.channel_id) || 0}`;
+const rvHome = (it, sec) => `#/${sec || 'izle'}/k/${(it && it.channel_id) || 0}`;
 function renderReviewNav(r) {
   const t = S.rv.tree;
   if (!t) { $('#catnav').innerHTML = ''; if (!S.rv.loading) { S.rv.loading = true; loadReviewList(true).catch(() => {}).finally(() => { S.rv.loading = false; }); } return; }
-  const cnt = rvCounts(t);
+  const sec = rvSec(r), type = rvType(sec), cnt = rvCounts(t, type), kc = (ch) => ch.cats.filter(c => c.kind === type);
   const curCh = r.view === 'channel' ? r.ch : r.view === 'reviewer' ? (S.rv.cur && S.rv.cur.channel_id || 0) : r.view === 'doc' ? (S.rv.doc && S.rv.doc.channel_id || 0) : -1;
   const curCat = r.view === 'channel' ? r.cat : 0;
   const row = (id, name, n, open, cur, kids) => `<div class="navrow"><button class="chev" data-rv="chev" data-ch="${id}" aria-expanded="${open}" aria-label="${esc(name)} başlıklarını aç/kapat">${open ? '▾' : '▸'}</button>
-      <a class="navlink" href="#/izle/k/${id}" ${cur ? 'aria-current="page"' : ''}><span>${esc(name)}</span><span class="n">${n || ''}</span></a></div>${open ? kids : ''}`;
-  const catKids = (ch) => ch.cats.filter(c => !c.parent_id).map(c => `<a class="navlink sub" href="#/izle/k/${ch.id}/${c.id}" ${curCat === c.id ? 'aria-current="page"' : ''}><span>${esc(c.name)}</span><span class="n">${cnt.get('k' + c.id) || ''}</span></a>` +
-    ch.cats.filter(s => s.parent_id === c.id).map(s => `<a class="navlink sub2" href="#/izle/k/${ch.id}/${s.id}" ${curCat === s.id ? 'aria-current="page"' : ''}><span>${esc(s.name)}</span><span class="n">${cnt.get('k' + s.id) || ''}</span></a>`).join('')).join('');
-  const none = rvItems(t).some(i => !i.channel_id) ? row(0, 'Kanalsız', cnt.get('c0'), S.rv.open.has(0) || curCh === 0, r.view === 'channel' && r.ch === 0 && !r.cat, '') : '';
+      <a class="navlink" href="#/${sec}/k/${id}" ${cur ? 'aria-current="page"' : ''}><span>${esc(name)}</span><span class="n">${n || ''}</span></a></div>${open ? kids : ''}`;
+  const catKids = (ch) => kc(ch).filter(c => !c.parent_id).map(c => `<a class="navlink sub" href="#/${sec}/k/${ch.id}/${c.id}" ${curCat === c.id ? 'aria-current="page"' : ''}><span>${esc(c.name)}</span><span class="n">${cnt.get('k' + c.id) || ''}</span></a>` +
+    kc(ch).filter(s => s.parent_id === c.id).map(s => `<a class="navlink sub2" href="#/${sec}/k/${ch.id}/${s.id}" ${curCat === s.id ? 'aria-current="page"' : ''}><span>${esc(s.name)}</span><span class="n">${cnt.get('k' + s.id) || ''}</span></a>`).join('')).join('');
+  const none = rvItems(t).some(i => !i.channel_id && i.type === type) ? row(0, 'Kanalsız', cnt.get('c0'), S.rv.open.has(0) || curCh === 0, r.view === 'channel' && r.ch === 0 && !r.cat, '') : '';
   $('#catnav').innerHTML = `<div class="railtitle">Kanallar<button class="btn ghost sm" data-rv="chadd" aria-label="Yeni kanal ekle">+ Kanal</button></div>` +
     t.channels.map(ch => row(ch.id, ch.name, cnt.get('c' + ch.id), S.rv.open.has(ch.id) || curCh === ch.id, r.view === 'channel' && r.ch === ch.id && !r.cat, catKids(ch))).join('') + none;
 }
-function renderReviews() {
+function renderReviews(r) {
   const t = S.rv.tree;
   if (!t) { $('#view').innerHTML = '<p class="empty">Yükleniyor…</p>'; return; }
-  const cnt = rvCounts(t), items = rvItems(t).filter(i => !i.dismissed), looseAny = rvItems(t).some(i => !i.channel_id);
+  const sec = rvSec(r), type = rvType(sec), word = type === 'm' ? 'metin' : 'video';
+  const items = rvItems(t).filter(i => !i.dismissed && i.type === type), looseAny = rvItems(t).some(i => !i.channel_id && i.type === type);
   const card = (id, name) => {
     const mine = items.filter(i => (i.channel_id || 0) === id), todo = mine.filter(i => i.status !== 'onaylandi').length;
-    return `<a class="rvcard" href="#/izle/k/${id}"><b>${esc(name)}</b><span class="stat">${mine.filter(i => i.type === 'v').length} video · ${mine.filter(i => i.type === 'm').length} metin</span>
+    return `<a class="rvcard" href="#/${sec}/k/${id}"><b>${esc(name)}</b><span class="stat">${mine.length} ${word}</span>
       <span class="stat">${todo ? `<span class="rvst">${todo} incelenecek</span>` : 'Hepsi görüldü'}</span></a>`;
   };
-  $('#view').innerHTML = `<div class="an"><div class="pagehead"><h1 tabindex="-1">Kanallar</h1><span class="meta">${t.channels.length} kanal</span>
+  $('#view').innerHTML = `<div class="an"><div class="pagehead"><h1 tabindex="-1">${type === 'm' ? 'Metinler' : 'Videolar'}</h1><span class="meta">${t.channels.length} kanal</span>
       <button class="btn sm" data-rv="chadd" style="margin-left:auto">+ Yeni kanal</button></div>
-    <p class="hint">Önce kanalı seç; videolar ve metinler kanalın başlıkları altında listelenir. Bitenleri ✕ ile ekrandan temizleyebilirsin.</p>
+    <p class="hint">Önce kanalı seç; ${word}ler kanalın başlıkları ve alt başlıkları altında listelenir. Bitenleri ✕ ile ekrandan temizleyebilirsin.</p>
     ${t.channels.length || looseAny ? `<div class="rvlist">${t.channels.map(c => card(c.id, c.name)).join('')}${looseAny ? card(0, 'Kanalsız') : ''}</div>`
-      : '<p class="empty">Henüz kanal yok. Claude bir video veya metin kaydedince kanalı kendiliğinden açar; “+ Yeni kanal” ile elle de ekleyebilirsin.</p>'}</div>`;
+      : '<p class="empty">Henüz kanal yok. Claude bir ${word} kaydedince kanalı kendiliğinden açar; “+ Yeni kanal” ile elle de ekleyebilirsin.</p>'}</div>`;
 }
 function rvRow(t, it) {
   const m = it.type === 'v' ? [RVK[it.kind], it.platform && (PLAT[it.platform] || it.platform), 'sürüm ' + it.version_n, it.note_count + ' not']
     : ['Metin', it.open_comments + ' açık yorum', it.dirty ? 'düzenlendi' : ''];
   const ch = t.channels.find(c => c.id === it.channel_id);
-  const catOpts = ch ? ch.cats.filter(c => !c.parent_id).map(c => `<option value="${c.id}" ${it.cat_id === c.id ? 'selected' : ''}>${esc(c.name)}</option>` +
-    ch.cats.filter(s => s.parent_id === c.id).map(s => `<option value="${s.id}" ${it.cat_id === s.id ? 'selected' : ''}>${esc(c.name)} › ${esc(s.name)}</option>`).join('')).join('') : '';
+  const kcs = ch ? ch.cats.filter(c => c.kind === it.type) : [];
+  const catOpts = ch ? kcs.filter(c => !c.parent_id).map(c => `<option value="${c.id}" ${it.cat_id === c.id ? 'selected' : ''}>${esc(c.name)}</option>` +
+    kcs.filter(s => s.parent_id === c.id).map(s => `<option value="${s.id}" ${it.cat_id === s.id ? 'selected' : ''}>${esc(c.name)} › ${esc(s.name)}</option>`).join('')).join('') : '';
   const chOpts = t.channels.map(c => `<option value="${c.id}" ${it.channel_id === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
   return `<div class="rvrow ${it.dismissed ? 'is-done' : ''}" data-type="${it.type}" data-id="${it.id}">
     <a class="rvmain" href="${rvHref(it)}"><span class="ico" aria-hidden="true">${it.type === 'v' ? '▶' : '✎'}</span><span class="rtitle">${esc(rvShort(t, it))}</span>
@@ -959,12 +963,12 @@ function rvRow(t, it) {
 function renderChannel(r) {
   const t = S.rv.tree;
   if (!t) { $('#view').innerHTML = '<p class="empty">Yükleniyor…</p>'; return; }
-  const ch = t.channels.find(c => c.id === r.ch);
-  if (r.ch && !ch) { $('#view').innerHTML = '<p class="empty">Kanal bulunamadı. <a href="#/izle">Kanallara dön</a></p>'; return; }
-  const cats = ch ? ch.cats : [], cnt = rvCounts(t);
-  const all = rvItems(t).filter(i => (i.channel_id || 0) === r.ch);
+  const sec = rvSec(r), type = rvType(sec), ch = t.channels.find(c => c.id === r.ch);
+  if (r.ch && !ch) { $('#view').innerHTML = `<p class="empty">Kanal bulunamadı. <a href="#/${sec}">Kanallara dön</a></p>`; return; }
+  const cats = ch ? ch.cats.filter(c => c.kind === type) : [], cnt = rvCounts(t, type);
+  const all = rvItems(t).filter(i => (i.channel_id || 0) === r.ch && i.type === type);
   const hiddenN = all.filter(i => i.dismissed).length;
-  const vis = all.filter(i => (S.rv.done || !i.dismissed) && (S.rv.f === 'hepsi' || i.type === S.rv.f));
+  const vis = all.filter(i => S.rv.done || !i.dismissed);
   const section = (title, list, head, level) => `<section class="rvsec l${level}">${head}${list.length ? `<div class="rvrows">${list.map(i => rvRow(t, i)).join('')}</div>` : '<p class="empty">Bu başlıkta öğe yok.</p>'}</section>`;
   const catMenu = (c) => `<details class="menu"><summary aria-label="${esc(c.name)} işlemleri">⋯</summary><div class="pop">
       <button data-rv="catrename" data-cat="${c.id}">Yeniden adlandır</button>${c.parent_id ? '' : `<button data-rv="subadd" data-cat="${c.id}">+ Alt başlık</button>`}
@@ -979,13 +983,12 @@ function renderChannel(r) {
     for (const s of subs) body += section(s.name, vis.filter(i => i.cat_id === s.id), head(s, 2), 2);
   }
   if (!r.cat) { const loose = vis.filter(i => !i.cat_id || !cats.some(c => c.id === i.cat_id)); if (loose.length || !cats.length) body += section('Başlıksız', loose, cats.length ? '<div class="sechead"><h2>Başlıksız</h2></div>' : '', 1); }
-  const chip = (k, l) => `<button class="chip ${S.rv.f === k ? 'on' : ''}" data-rv="filter" data-k="${k}" aria-pressed="${S.rv.f === k}">${l}</button>`;
-  $('#view').innerHTML = `<div class="an rvch"><div class="pagehead"><a class="btn sm ghost" href="#/izle">← Kanallar</a><h1 tabindex="-1">${esc(ch ? ch.name : 'Kanalsız')}</h1>
-      <span class="meta">${cnt.get('c' + r.ch) || 0} öğe</span>
+  $('#view').innerHTML = `<div class="an rvch"><div class="pagehead"><a class="btn sm ghost" href="#/${sec}">← ${type === 'm' ? 'Metinler' : 'Videolar'}</a><h1 tabindex="-1">${esc(ch ? ch.name : 'Kanalsız')}</h1>
+      <span class="meta">${cnt.get('c' + r.ch) || 0} ${type === 'm' ? 'metin' : 'video'}</span>
       ${ch ? `<button class="btn sm" data-rv="catadd" data-ch="${ch.id}" style="margin-left:auto">+ Başlık</button>
       <details class="menu"><summary aria-label="Kanal işlemleri">⋯</summary><div class="pop"><button data-rv="chrename" data-ch="${ch.id}">Yeniden adlandır</button>
       <button class="danger" data-rv="chdel" data-ch="${ch.id}">Kanalı sil</button></div></details>` : ''}</div>
-    <div class="rvtools">${chip('hepsi', 'Hepsi')}${chip('v', 'Videolar')}${chip('m', 'Metinler')}
+    <div class="rvtools">
       ${hiddenN ? `<button class="btn sm ghost" data-rv="showdone" style="margin-left:auto">${S.rv.done ? 'Temizlenenleri gizle' : `Temizlenenleri göster (${hiddenN})`}</button>` : ''}</div>
     ${body}</div>`;
   $('#view h1').focus({preventScroll: true});
@@ -1001,14 +1004,14 @@ async function rvTreeAct(b, act) {
   const ask = async (title, label, value, confirm) => { const r = await dialog({title, fields: [{label, value: value || ''}], confirm}); return r && r[0].trim() ? r[0].trim() : null; };
   if (act === 'chadd') { const n = await ask('Yeni kanal', 'Kanal adı', '', 'Ekle'); if (n) try { await rvTree('POST', '/api/review/channels', {name: n}); } catch (e) {} return true; }
   if (act === 'chrename') { const id = +b.dataset.ch, c = S.rv.tree.channels.find(x => x.id === id), n = await ask('Kanalı yeniden adlandır', 'Kanal adı', c.name, 'Kaydet'); if (n) try { await rvTree('PATCH', `/api/review/channels/${id}`, {name: n}); } catch (e) {} return true; }
-  if (act === 'chdel') { const id = +b.dataset.ch; if (await dialog({title: 'Kanal silinsin mi?', text: 'Yalnızca boş kanal silinir; içinde öğe varsa önce taşı.', confirm: 'Sil', danger: true})) try { await rvTree('DELETE', `/api/review/channels/${id}`); location.hash = '#/izle'; } catch (e) {} return true; }
-  if (act === 'catadd') { const n = await ask('Yeni başlık', 'Başlık adı (örn. Altyazı yönleri)', '', 'Oluştur'); if (n) try { await rvTree('POST', `/api/review/channels/${b.dataset.ch}/cats`, {name: n}); } catch (e) {} return true; }
+  if (act === 'chdel') { const id = +b.dataset.ch; if (await dialog({title: 'Kanal silinsin mi?', text: 'Yalnızca boş kanal silinir; içinde öğe varsa önce taşı.', confirm: 'Sil', danger: true})) try { await rvTree('DELETE', `/api/review/channels/${id}`); location.hash = '#/' + rvSec(route()); } catch (e) {} return true; }
+  if (act === 'catadd') { const n = await ask('Yeni başlık', 'Başlık adı (örn. Altyazı yönleri)', '', 'Oluştur'); if (n) try { await rvTree('POST', `/api/review/channels/${b.dataset.ch}/cats`, {name: n, kind: rvType(rvSec(route()))}); } catch (e) {} return true; }
   if (act === 'subadd') {
     const id = +b.dataset.cat, ch = S.rv.tree.channels.find(c => c.cats.some(k => k.id === id)), n = await ask('Yeni alt başlık', 'Alt başlık adı', '', 'Oluştur');
     if (n) try { await rvTree('POST', `/api/review/channels/${ch.id}/cats`, {name: n, parent_id: id}); } catch (e) {} return true;
   }
   if (act === 'catrename') { const id = +b.dataset.cat, c = S.rv.tree.channels.flatMap(x => x.cats).find(k => k.id === id), n = await ask('Başlığı yeniden adlandır', 'Başlık adı', c.name, 'Kaydet'); if (n) try { await rvTree('PATCH', `/api/review/cats/${id}`, {name: n}); } catch (e) {} return true; }
-  if (act === 'catdel') { const id = +b.dataset.cat; if (await dialog({title: 'Başlık silinsin mi?', text: 'Alt başlıkları da silinir; içindeki videolar/metinler silinmez, “Başlıksız”a düşer.', confirm: 'Sil', danger: true})) try { await rvTree('DELETE', `/api/review/cats/${id}`); if (route().cat) location.hash = rvHome({channel_id: route().ch}); } catch (e) {} return true; }
+  if (act === 'catdel') { const id = +b.dataset.cat; if (await dialog({title: 'Başlık silinsin mi?', text: 'Alt başlıkları da silinir; içindeki videolar/metinler silinmez, “Başlıksız”a düşer.', confirm: 'Sil', danger: true})) try { await rvTree('DELETE', `/api/review/cats/${id}`); if (route().cat) location.hash = rvHome({channel_id: route().ch}, rvSec(route())); } catch (e) {} return true; }
   return false;
 }
 async function rvTreeChange(el) {
@@ -1024,13 +1027,13 @@ function renderReviewer(r) {
   S.rv.key = key; S.rv.cur = null; S.rv.hold = null;
   $('#view').innerHTML = '<p class="empty">Yükleniyor…</p>';
   api('GET', `/api/review/videos/${r.id}`).then(v => { if (S.rv.key !== key) return; S.rv.cur = v; S.rv.ver = v.versions.length - 1; drawReviewer(); renderNav(route()); })
-    .catch(() => { if (S.rv.key === key) $('#view').innerHTML = '<p class="empty">Video bulunamadı. <a href="#/izle">Listeye dön</a></p>'; });
+    .catch(() => { if (S.rv.key === key) $('#view').innerHTML = '<p class="empty">Video bulunamadı. <a href="#/izle">Videolara dön</a></p>'; });
 }
 const rvVideo = () => $('#rvplayer');
 const rvLatest = () => S.rv.cur && S.rv.ver === S.rv.cur.versions.length - 1;
 function drawReviewer() {
   const v = S.rv.cur, ver = v.versions[S.rv.ver], latest = rvLatest(), locked = !latest || v.status === 'revizyon';
-  $('#view').innerHTML = `<div class="rv ${esc(v.kind)}"><div class="pagehead"><a class="btn sm ghost" href="${rvHome(v)}">← ${esc((S.rv.tree && rvChName(S.rv.tree, v.channel_id)) || 'Kanallar')}</a><h1 tabindex="-1">${esc(v.title)}</h1>
+  $('#view').innerHTML = `<div class="rv ${esc(v.kind)}"><div class="pagehead"><a class="btn sm ghost" href="${rvHome(v, 'izle')}">← ${esc((S.rv.tree && rvChName(S.rv.tree, v.channel_id)) || 'Kanallar')}</a><h1 tabindex="-1">${esc(v.title)}</h1>
       <span class="rvst ${esc(v.status)}">${esc(RVST[v.status] || v.status)}</span>
       <span class="meta">${esc([v.brand, RVK[v.kind], v.platform && (PLAT[v.platform] || v.platform)].filter(Boolean).join(' · '))}</span></div>
     <div id="rvbanner"></div>
@@ -1179,7 +1182,7 @@ function renderDoc(r) {
   S.rv.key = key; S.rv.doc = null; S.rv.pend = null; S.rv.edit = null;
   $('#view').innerHTML = '<p class="empty">Yükleniyor…</p>';
   api('GET', `/api/review/docs/${r.id}`).then(d => { if (S.rv.key !== key) return; S.rv.doc = d; drawDoc(); renderNav(route()); })
-    .catch(() => { if (S.rv.key === key) $('#view').innerHTML = '<p class="empty">Metin bulunamadı. <a href="#/izle">Kanallara dön</a></p>'; });
+    .catch(() => { if (S.rv.key === key) $('#view').innerHTML = '<p class="empty">Metin bulunamadı. <a href="#/metin">Metinlere dön</a></p>'; });
 }
 function nthIndex(content, quote, occ) {
   let from = 0, idx = -1, first = -1;
@@ -1211,7 +1214,7 @@ function lineHtml(l, st, cover, byId) {
 function drawDoc() {
   const d = S.rv.doc, ch = S.rv.tree && S.rv.tree.channels.find(c => c.id === d.channel_id);
   const locked = d.status === 'revizyon';
-  $('#view').innerHTML = `<div class="rd ${S.rv.dir ? '' : 'nodir'}" style="--fs:${S.rv.fs}px"><div class="pagehead"><a class="btn sm ghost" href="${rvHome(d)}">← ${esc(ch ? ch.name : 'Kanallar')}</a>
+  $('#view').innerHTML = `<div class="rd ${S.rv.dir ? '' : 'nodir'}" style="--fs:${S.rv.fs}px"><div class="pagehead"><a class="btn sm ghost" href="${rvHome(d, 'metin')}">← ${esc(ch ? ch.name : 'Kanallar')}</a>
       <h1 tabindex="-1">${esc(d.title)}</h1><span class="rvst ${esc(d.status)}">${esc(RVST[d.status] || d.status)}</span>${d.dirty ? '<span class="rvst revizyon">arayüzde düzenlendi</span>' : ''}</div>
     <div id="rdbanner"></div>
     <div class="rdtools"><button class="btn sm" data-rv="fs" data-d="-1" aria-label="Yazıyı küçült">A−</button><button class="btn sm" data-rv="fs" data-d="1" aria-label="Yazıyı büyüt">A+</button>
