@@ -93,8 +93,8 @@ def live(tmp_path):
 
 def test_izle_py_uzak_sunucuya_yukler_ve_revizyonu_okur(live, tmp_path, monkeypatch, capsys):
     url, cfg = live
-    monkeypatch.setenv("KAYDET_SERVER", url)
-    monkeypatch.setenv("KAYDET_TOKEN", "tok")
+    monkeypatch.setenv("IZLE_SERVER", url)
+    monkeypatch.setenv("IZLE_TOKEN", "tok")
     monkeypatch.setenv("IZLE_CWD", str(tmp_path))
     mp4 = tmp_path / "v.mp4"
     mp4.write_bytes(b"x" * 5000)
@@ -116,7 +116,7 @@ def test_izle_py_uzak_sunucuya_yukler_ve_revizyonu_okur(live, tmp_path, monkeypa
     assert izle_cli.main(["metin-guncelle", "1", "s.md", "--not", "tamam"]) == 0
     assert izle_cli.main(["metin-al", "1"]) == 0
     assert md.read_text(encoding="utf-8") == "Merhaba Dünya\n"
-    monkeypatch.setenv("KAYDET_TOKEN", "yanlis")
+    monkeypatch.setenv("IZLE_TOKEN", "yanlis")
     assert izle_cli.main(["bekleyen"]) == 1
     assert "401" in capsys.readouterr().out
 

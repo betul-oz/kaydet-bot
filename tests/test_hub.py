@@ -146,7 +146,7 @@ def test_cli_metin_ve_kategori(tmp_path, monkeypatch, capsys):
     md.write_text("Merhaba\n", encoding="utf-8")
     monkeypatch.setenv("KAYDET_CONFIG", str(cfg))
     monkeypatch.setenv("IZLE_CWD", str(tmp_path))
-    monkeypatch.delenv("KAYDET_SERVER", raising=False)
+    monkeypatch.delenv("IZLE_SERVER", raising=False)
     assert izle_cli.main(["metin-ekle", "s.md", "--baslik", "S", "--marka", "K", "--kategori", "A/B"]) == 0
     md.write_text("Değişti\n", encoding="utf-8")
     assert izle_cli.main(["metin-guncelle", "1", "s.md", "--not", "tamam"]) == 0

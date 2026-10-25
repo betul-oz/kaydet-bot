@@ -1,4 +1,4 @@
-"""izle.py'nin yayındaki sunucu modu: KAYDET_SERVER=https://alan-adi KAYDET_TOKEN=... ile videolar ve metinler
+"""izle.py'nin yayındaki sunucu modu: IZLE_SERVER=https://alan-adi IZLE_TOKEN=... ile videolar ve metinler
 yerel veritabanı yerine sunucuya gönderilir; revizyon notları sunucudan okunur."""
 from __future__ import annotations
 
@@ -13,15 +13,15 @@ TIMEOUT = 600
 
 
 def _server() -> str:
-    url = os.environ["KAYDET_SERVER"].rstrip("/")
+    url = os.environ["IZLE_SERVER"].rstrip("/")
     host = urllib.parse.urlparse(url).hostname or ""
     if not url.startswith("https://") and host not in ("localhost", "127.0.0.1", "::1"):
-        raise OSError("KAYDET_SERVER https:// ile başlamalı (token açık metin gitmesin)")
+        raise OSError("IZLE_SERVER https:// ile başlamalı (token açık metin gitmesin)")
     return url
 
 
 def _headers(extra: dict | None = None) -> dict:
-    h = {"Authorization": "Bearer " + os.environ.get("KAYDET_TOKEN", "")}
+    h = {"Authorization": "Bearer " + os.environ.get("IZLE_TOKEN", "")}
     h.update(extra or {})
     return h
 
@@ -91,7 +91,7 @@ def run(args, abs_) -> int:
             detail = json.loads(e.read().decode("utf-8")).get("detail", "")
         except Exception:
             detail = ""
-        print(f"Sunucu hatası {e.code}: {detail or e.reason}" + (" (KAYDET_TOKEN yanlış olabilir)" if e.code == 401 else ""))
+        print(f"Sunucu hatası {e.code}: {detail or e.reason}" + (" (IZLE_TOKEN yanlış olabilir)" if e.code == 401 else ""))
         return 1
     except (urllib.error.URLError, FileNotFoundError, OSError) as e:
         print(f"Sunucuya ulaşılamadı: {e}")

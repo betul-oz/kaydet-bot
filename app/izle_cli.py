@@ -1,4 +1,4 @@
-"""izle.py komutları (Claude oturumlarından). Yerel veritabanına ya da, KAYDET_SERVER verilmişse, yayındaki sunucuya yazar.
+"""izle.py komutları (Claude oturumlarından). Yerel veritabanına ya da, IZLE_SERVER verilmişse, yayındaki sunucuya yazar.
 
   python izle.py ekle <video> --baslik "..." --marka "Kanal" [--kategori "Başlık/Alt başlık"] [--format yatay|short]
                               [--platform youtube] [--proje <klasör>]
@@ -69,7 +69,7 @@ def main(argv: list[str] | None = None) -> int:
         q = Path(p).expanduser()
         return str(q if q.is_absolute() else (base / q).resolve())
 
-    if os.environ.get("KAYDET_SERVER"):
+    if os.environ.get("IZLE_SERVER"):
         from . import remote
         return remote.run(args, abs_)
 
