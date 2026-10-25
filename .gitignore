@@ -13,3 +13,5 @@ __pycache__/
 cookies*.txt
 *.cookies
 *.log
+
+dokploy-env.txt

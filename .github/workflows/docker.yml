@@ -1,0 +1,41 @@
+# main'e her gönderimde Docker imajını GitHub'ın sunucusunda derler ve ghcr.io'ya yükler.
+# Dokploy'da uygulama kaynağı "Docker" seçilip bu imaj çekilir; sunucuda derleme yapılmaz.
+name: Docker imajı
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  imaj:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      # İsteğe bağlı: depoda DOKPLOY_WEBHOOK gizli değişkeni varsa imaj yüklenince Dokploy kendiliğinden yeniden dağıtır.
+      - name: Dokploy'u tetikle
+        env:
+          HOOK: ${{ secrets.DOKPLOY_WEBHOOK }}
+        run: |
+          if [ -n "$HOOK" ]; then curl -fsS -X POST "$HOOK"; else echo "DOKPLOY_WEBHOOK tanımlı değil, atlandı"; fi

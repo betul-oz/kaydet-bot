@@ -2,7 +2,14 @@
 
 Uygulama yayında **şifreyle** açılır; videolar ve metinler `izle.py` ile bilgisayarından sunucuya yüklenir, notlar sunucuda tutulur.
 
-## 1. Dokploy'da uygulama
+## 0. Hazır imajla yayın (önerilen: sunucuda derleme yok)
+`.github/workflows/docker.yml` her `main` gönderiminde imajı GitHub'ın sunucusunda derler ve `ghcr.io/betul-oz/kaydet-bot:latest` olarak yükler. Dokploy'da:
+1. Uygulamayı oluştururken **Source Type: Docker** seç, **Docker Image**: `ghcr.io/betul-oz/kaydet-bot:latest`.
+2. Paket özelse (GitHub → profil → Packages → kaydet-bot → Package settings → **Change visibility: Public**) açık yap; açmak istemezsen Dokploy'da registry kullanıcı adı = GitHub kullanıcı adın, parola = `read:packages` yetkili bir GitHub token'ı.
+3. Aşağıdaki Environment, Volume ve Domain adımları aynı.
+4. Yeni sürüm: GitHub → Actions'ta yeşil tik çıkınca Dokploy'da **Redeploy** (imajı yeniden çeker). Otomatik olsun istersen Dokploy'da uygulamanın **Webhook URL**'sini kopyalayıp GitHub → Settings → Secrets → Actions içine `DOKPLOY_WEBHOOK` olarak ekle.
+
+## 1. Dokploy'da uygulama (sunucuda derleme ile)
 1. **Create Application** → GitHub'daki bu depoyu seç (`betul-oz/kaydet-bot`), dal: `main` (ya da `claude/changes`). Build tipi: **Dockerfile**.
 2. **Environment** (zorunlu):
    - `KAYDET_PASSWORD` = tarayıcı giriş şifresi (uzun ve benzersiz)
