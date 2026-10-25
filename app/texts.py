@@ -6,6 +6,7 @@ from __future__ import annotations
 import sqlite3
 
 from . import board, channels
+from .review import IZLE_CMD
 
 STATES = ("acik", "uygulandi")
 MAX_DOC = 3 * 1024 * 1024
@@ -206,12 +207,15 @@ def revision_prompt(conn: sqlite3.Connection, doc_id: int) -> str:
     if d["source_path"]:
         lines.append(f"Kaynak dosya: {d['source_path']}")
     if d["dirty"]:
-        lines.append(f"Kullanıcı metni arayüzde doğrudan düzenlemiş. Önce güncel metni dosyaya al: python izle.py metin-al {d['id']}")
+        lines.append(f"Kullanıcı metni arayüzde doğrudan düzenlemiş. Önce güncel metni dosyaya al: {IZLE_CMD} metin-al {d['id']}")
     open_ = [c for c in d["comments"] if c["state"] == "acik"]
     if open_:
-        lines.append("Aşağıdaki yorumları metne uygula (alıntı → istek); her yorum için yalnızca o noktayı değiştir:")
+        lines.append("")
+        lines.append("Yorumlar (alıntı → ne değişsin):")
         lines += [f"- [satır {c['line'] + 1}] “{c['quote']}” → {c['text']}" for c in open_]
-    lines.append(f"Bitince: python izle.py metin-guncelle {d['id']} <dosya> --not \"ne yaptın\"")
+    lines.append("")
+    lines.append("Yap: yorumları metne uygula; her yorumda yalnızca o noktayı değiştir. Bitince metni yükle:")
+    lines.append(f'{IZLE_CMD} metin-guncelle {d["id"]} "<dosya>" --not "ne yaptın"')
     return "\n".join(lines)
 
 

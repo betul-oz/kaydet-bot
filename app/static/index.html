@@ -274,6 +274,9 @@ mark{background:#FFE58A;color:#241d00;border-radius:3px;padding:0 1px}mark.done{
 .insights h4{margin:0 0 6px;font:600 13px var(--head)}.insights h4 small{color:var(--ok);font-weight:600;margin-left:6px}
 .icells{display:flex;flex-wrap:wrap;gap:6px}.icell{min-width:52px;border:1px solid var(--line);border-radius:10px;padding:4px 8px;display:flex;flex-direction:column;align-items:center;line-height:1.25}
 .icell span{font-weight:700}.icell small{color:var(--muted);font-size:11px}.icell.few{opacity:.55}
+dialog:has(.pdlg){width:min(720px,94vw);max-width:94vw;overflow-x:hidden}.pdlg{width:100%}.pdlg textarea{box-sizing:border-box;white-space:pre-wrap;overflow-wrap:anywhere}.pdlg .psteps{margin:6px 0 10px;padding-left:20px;color:var(--muted);font-size:14px}
+.pdlg textarea{width:100%;font:13px/1.5 ui-monospace,Consolas,monospace;resize:vertical}
+.pdlg .actions{margin-top:10px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.pdlg .actions #pshort{margin-right:auto}
 </style>
 </head>
 <body>
@@ -823,6 +826,22 @@ document.addEventListener('keydown', (e) => {
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('details.menu[open]').forEach(d => d.open = false); });
 
+// "Claude'a ver" penceresi: istemi gösterir, seçili tutar, tek tıkla kopyalar (pano engellenirse Ctrl+C ile elle de alınır)
+const SHORT_PROMPT = 'Bekleyen revizyonları yap: izle.py bekleyen komutunu çalıştır, notlara göre düzelt, yeni sürümü yükle.';
+async function showPrompt(text, title) {
+  const d = $('#dlg');
+  d.innerHTML = `<form method="dialog" class="pdlg"><h2>${esc(title || 'Claude’a ver')}</h2>
+    <ol class="psteps"><li>Claude’u bu bilgisayarda aç.</li><li>Aşağıdaki metni yapıştır (ya da kısa komutu yaz). Claude notlara göre düzeltip yeni sürümü buraya yükler.</li></ol>
+    <textarea class="field" id="ptext" readonly rows="11" aria-label="Claude’a verilecek istem">${esc(text)}</textarea>
+    <div class="actions"><button type="button" class="btn" id="pshort">Kısa komutu kopyala</button>
+      <button class="btn" value="cancel" formnovalidate>Kapat</button><button type="button" class="btn primary" id="pfull">İstemi kopyala</button></div></form>`;
+  const ta = $('#ptext'), bf = $('#pfull'), bs = $('#pshort');
+  const mark = (b, label, ok) => { const old = b.dataset.l || b.textContent; b.dataset.l = old; b.textContent = ok ? '✓ Kopyalandı' : 'Seçili: Ctrl+C bas'; setTimeout(() => { b.textContent = old; }, 2200); };
+  bf.addEventListener('click', async () => { ta.focus(); ta.select(); mark(bf, '', await copyText(text)); });
+  bs.addEventListener('click', async () => mark(bs, '', await copyText(SHORT_PROMPT)));
+  d.returnValue = ''; d.showModal(); ta.focus(); ta.select();
+  copyText(text).then(ok => { if (ok) mark(bf, '', true); });  // açılır açılmaz da dener
+}
 async function copyText(text) {
   try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
   const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
@@ -1132,7 +1151,7 @@ document.addEventListener('click', async (e) => {
   if (act === 'seek' && vd) { vd.pause(); vd.currentTime = +b.dataset.t; return; }
   if (act === 'step' && vd) { vd.pause(); vd.currentTime = Math.max(0, Math.min(vd.duration || 1e9, vd.currentTime + +b.dataset.d)); if (S.rv.hold !== null) S.rv.hold = vd.currentTime; return; }
   if (act === 'last') { S.rv.ver = v.versions.length - 1; drawReviewer(); return; }
-  if (act === 'copyprompt') { try { toast(await copyText(await api('GET', `/api/review/videos/${v.id}/prompt`)) ? 'İstem kopyalandı. Claude’a yapıştırabilirsin' : 'Kopyalanamadı'); } catch (err) {} return; }
+  if (act === 'copyprompt') { try { await showPrompt(await api('GET', `/api/review/videos/${v.id}/prompt`), 'Claude’a ver: video revizyonu'); } catch (err) {} return; }
   if (act === 'notedel') {
     const id = b.closest('[data-note]').dataset.note;
     try { await api('DELETE', `/api/review/notes/${id}`); rvAfter(await api('GET', `/api/review/videos/${v.id}`)); } catch (err) {}
@@ -1148,9 +1167,9 @@ document.addEventListener('click', async (e) => {
     if (!ok) return;
     try {
       const res = await api('POST', `/api/review/videos/${v.id}/revise`);
-      const copied = await copyText(res.prompt);
       S.rv.cur = res.video; drawReviewer(); loadReviewList(true).catch(() => {});
-      toast(copied ? 'Revizyon istendi. İstem de kopyalandı' : 'Revizyon istendi');
+      toast('Revizyon istendi');
+      await showPrompt(res.prompt, 'Revizyon istendi: şimdi Claude’a ver');
     } catch (err) {}
   }
 });
@@ -1348,10 +1367,10 @@ async function docAct(b, act) {
   if (act === 'docgo') {
     const open = d.comments.filter(c => c.state === 'acik').length;
     if (!await dialog({title: 'Değişikliğe başlansın mı?', text: `${open} yorum${d.dirty ? ' ve doğrudan düzenleme' : ''} revizyon isteği olarak kaydedilecek. Claude bir sonraki oturumda (veya “bekleyen revizyonları yap” dediğinde) metni buna göre günceller.`, confirm: 'Değişikliğe başla'})) return true;
-    try { const res = await api('POST', `/api/review/docs/${d.id}/revise`); const ok = await copyText(res.prompt); S.rv.doc = res.doc; drawDoc(); loadReviewList(true).catch(() => {}); toast(ok ? 'Revizyon istendi. İstem de kopyalandı' : 'Revizyon istendi'); } catch (e) {}
+    try { const res = await api('POST', `/api/review/docs/${d.id}/revise`); S.rv.doc = res.doc; drawDoc(); loadReviewList(true).catch(() => {}); toast('Revizyon istendi'); await showPrompt(res.prompt, 'Revizyon istendi: şimdi Claude’a ver'); } catch (e) {}
     return true;
   }
-  if (act === 'copyprompt' && S.rv.key[0] === 'm') { try { toast(await copyText(await api('GET', `/api/review/docs/${d.id}/prompt`)) ? 'İstem kopyalandı. Claude’a yapıştırabilirsin' : 'Kopyalanamadı'); } catch (e) {} return true; }
+  if (act === 'copyprompt' && S.rv.key[0] === 'm') { try { await showPrompt(await api('GET', `/api/review/docs/${d.id}/prompt`), 'Claude’a ver: metin revizyonu'); } catch (e) {} return true; }
   return false;
 }
 document.addEventListener('submit', async (e) => {

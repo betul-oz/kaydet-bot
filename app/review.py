@@ -17,6 +17,9 @@ from pathlib import Path
 from . import board, channels
 
 KINDS = ("yatay", "short")
+# Claude'a verilen istemlerde yazılan komut: kullanıcının bilgisayarındaki izle.py (sunucuda IZLE_YOLU ile değiştirilebilir)
+IZLE = os.environ.get("IZLE_YOLU", r"C:\Users\ozkan\Desktop\smDataAnalyze\izle.py")
+IZLE_CMD = f'python "{IZLE}"'
 STATUSES = ("inceleme", "revizyon", "onaylandi")
 VIDEO_EXT = {".mp4", ".webm", ".mov", ".m4v"}
 
@@ -244,13 +247,19 @@ def revision_prompt(conn: sqlite3.Connection, video_id: int) -> str:
     last = v["versions"][-1]
     lines = [f"Video revizyonu: “{v['title']}” (video #{v['id']}, {v['kind']}, sürüm {last['n']})"]
     if v["brand"] or v["platform"]:
-        lines.append("Marka/platform: " + " · ".join(x for x in (v["brand"], v["platform"]) if x))
-    lines.append(f"Dosya: {conn.execute('SELECT path FROM rv_versions WHERE id = ?', (last['id'],)).fetchone()['path']}")
+        lines.append("Kanal/platform: " + " · ".join(x for x in (v["brand"], v["platform"]) if x))
     if v["project_dir"]:
         lines.append(f"Proje klasörü: {v['project_dir']}")
-    lines.append("Aşağıdaki notları tam belirtilen zamanlara uygulayıp videoyu yeniden üret; her not için yalnızca o noktayı değiştir:")
+    path = conn.execute("SELECT path FROM rv_versions WHERE id = ?", (last["id"],)).fetchone()["path"]
+    # Yayındaki sunucuda dosya yolu kullanıcının bilgisayarında yoktur: yalnızca yerelde varsa yaz
+    lines.append(f"Güncel dosya: {path}" if Path(path).is_file() and not path.startswith("/data/")
+                 else f"Güncel dosya: sunucuda ({Path(path).name}); proje klasöründeki son çıktıdan devam et")
+    lines.append("")
+    lines.append("Notlar (zaman → ne değişsin):")
     lines += [f"- [{fmt_time(n['t'])}] {n['text']}" for n in last["notes"]]
-    lines.append(f"Bitince: python izle.py yeni-surum {v['id']} <yeni dosya>")
+    lines.append("")
+    lines.append("Yap: videoyu yeniden üret; her notta yalnızca o noktayı değiştir. Bitince yeni dosyayı yükle:")
+    lines.append(f'{IZLE_CMD} yeni-surum {v["id"]} "<yeni video dosyası>"')
     return "\n".join(lines)
 
 
