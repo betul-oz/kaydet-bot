@@ -232,6 +232,43 @@ dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
 .rvbar .grow{flex:1;min-width:180px}.rvbar .go{min-height:44px;padding:8px 22px;font-size:16px}
 @media (max-width:700px){.rvbar{margin:14px -12px -14px;padding:10px 12px}}
 .rvhelp{color:var(--muted);font-size:13px;margin-top:6px}.rvhelp kbd{background:var(--lane);border:1px solid var(--line);border-radius:5px;padding:0 5px}
+
+/* ---- Kanal ağacı (sol ray) ---- */
+.railtitle{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px 6px}
+.navrow{display:flex;align-items:center;gap:2px}.navrow .navlink{flex:1;min-width:0;justify-content:space-between;font-weight:600}
+.navlink>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.navlink .n{margin-left:auto;color:var(--muted);font-size:12px;font-weight:400;flex:0 0 auto}
+.chev{background:none;border:0;color:var(--muted);width:28px;min-height:36px;cursor:pointer;border-radius:8px;font-size:13px}.chev:hover{background:var(--accent-soft);color:var(--ink)}
+.navlink.sub{margin-left:30px;min-height:34px;font-size:14px;justify-content:space-between}
+.navlink.sub2{margin-left:46px;min-height:32px;font-size:13px;color:var(--muted);justify-content:space-between}
+/* ---- Kanal sayfası ---- */
+.rvtools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:10px 0 6px}
+.rvtools .chip{cursor:pointer;background:var(--surface);padding:3px 12px;min-height:30px}.rvtools .chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.rvsec{margin:18px 0 6px}.rvsec.l2{margin-left:18px;padding-left:14px;border-left:2px solid var(--line)}
+.sechead{display:flex;align-items:center;gap:8px;margin-bottom:6px}.sechead h2{font-size:19px}.sechead h3{font-size:16px;color:var(--ink)}.sechead .n{color:var(--muted);font-size:13px}
+.crumb{color:var(--muted);font-size:13px;margin-top:14px}
+.rvrows{display:flex;flex-direction:column;gap:6px}
+.rvrow{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 8px 6px 12px}
+.rvrow.is-done{opacity:.6}.rvmain{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px;color:var(--ink);text-decoration:none;min-height:36px;align-items:center;flex-wrap:wrap}
+.rvmain:hover .rtitle{text-decoration:underline}.rvmain .ico{color:var(--accent);font-size:13px;width:16px;text-align:center}
+.rtitle{font-weight:600;overflow-wrap:anywhere}.rmeta{color:var(--muted);font-size:13px}
+.rvrow .menu{position:relative}
+/* ---- Metin okuyucu ---- */
+.rd{--fs:19px}.rdtools{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.rdoc{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 22px;font-size:var(--fs);line-height:1.7;max-height:calc(100vh - 260px);overflow:auto}
+.ln{position:relative;padding-right:34px;white-space:pre-wrap;overflow-wrap:anywhere}.ln.blank{min-height:.8em}
+.lnedit{user-select:none;position:absolute;right:0;top:2px;opacity:0;background:none;border:0;cursor:pointer;font-size:.7em}.ln:hover .lnedit,.lnedit:focus-visible{opacity:1}
+.ln.editing{padding-right:0;margin:6px 0}.ln.editing textarea,.rdall{width:100%;font-size:inherit;line-height:1.5;min-height:80px}.rdall{min-height:55vh}
+.rdedit{display:flex;gap:8px;align-items:center;margin-top:8px}
+mark{background:#FFE58A;color:#241d00;border-radius:3px;padding:0 1px}mark.done{background:#CFEBD9}mark.flash{outline:3px solid var(--accent)}
+@media (prefers-color-scheme: dark){mark{background:#6B5A12;color:#FFF3C4}mark.done{background:#1F4A33;color:#D9F5E6}}
+.dir{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:0 6px;font-size:.78em;line-height:1.5;vertical-align:.1em}
+.nodir .dir{display:none}
+.rvcm{border-top:1px solid var(--line);padding-top:8px;display:flex;flex-direction:column;gap:6px}
+.rvcm .quote{text-align:left;background:var(--lane);border:0;border-left:3px solid var(--accent);border-radius:6px;padding:6px 8px;color:var(--muted);cursor:pointer;font-size:13px}
+.rvcm textarea{width:100%;resize:vertical;background:transparent;border:1px solid var(--line);border-radius:8px;padding:6px 8px}.rvcm p{margin:0;overflow-wrap:anywhere}
+.rvcm .cmeta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}.rvcm .cmeta .btn{margin-left:auto}
+.cnote{background:var(--accent-soft);border-radius:8px;padding:6px 8px;font-size:13px}.quote2{border-left:3px solid var(--accent);padding-left:8px;color:var(--muted);font-size:14px}
 </style>
 </head>
 <body>
@@ -279,6 +316,7 @@ async function api(method, url, body) {
   let r;
   try { r = await fetch(url, {method, headers: body ? {'Content-Type': 'application/json'} : {}, body: body ? JSON.stringify(body) : undefined}); }
   catch (e) { S.lastError = 'Sunucuya ulaşılamadı'; toast('Sunucuya ulaşılamadı. python -m app çalışıyor mu?'); throw e; }
+  if (r.status === 401) { location.href = '/login'; throw new Error('Giriş gerekli'); }
   if (!r.ok) { let m = r.statusText; try { m = (await r.json()).detail || m; } catch (e) {} S.lastError = m; toast(m); throw new Error(m); }
   return (r.headers.get('content-type') || '').includes('json') ? r.json() : r.text();
 }
@@ -298,6 +336,8 @@ function route() {
   let h = ''; try { h = decodeURIComponent(location.hash || ''); } catch (e) {}
   if (h === '#/analiz' || h.startsWith('#/analiz/')) return {view: 'analytics', brand: h.slice(9).replace(/^\//, '')};
   if (h === '#/izle') return {view: 'reviews'};
+  const km = h.match(/^#\/izle\/k\/(\d+)(?:\/(\d+))?$/); if (km) return {view: 'channel', ch: +km[1], cat: +(km[2] || 0)};
+  const mm = h.match(/^#\/izle\/m\/(\d+)$/); if (mm) return {view: 'doc', id: +mm[1]};
   const rm = h.match(/^#\/izle\/(\d+)$/); if (rm) return {view: 'reviewer', id: +rm[1]};
   if (h === '#/kanallar') return {view: 'channels'};
   if (h === '#/pano') return {view: 'board'};
@@ -342,7 +382,7 @@ const matches = (it) => (!S.plat || it.platform === S.plat) &&
   (!S.q || [it.title, it.note, it.url, it.category, it.subcategory].some(v => fold(v).includes(fold(S.q))));
 
 function renderNav(r) {
-  const iz = ['reviews', 'reviewer'].includes(r.view), an = ['analytics', 'channels', 'board'].includes(r.view);
+  const iz = RVVIEWS.includes(r.view), an = ['analytics', 'channels', 'board'].includes(r.view);
   $('#swkaydet').setAttribute('aria-current', String(!an && !iz)); $('#swanaliz').setAttribute('aria-current', String(an));
   $('#swizle').setAttribute('aria-current', String(iz));
   $('#catadd').hidden = an || iz; $('#extranav').hidden = an || iz;
@@ -439,7 +479,7 @@ function render() {
   if (!S.cats.length) return;
   const r = route();
   document.querySelector('.app').dataset.view = r.view;
-  document.querySelector('.app').dataset.mode = ['analytics', 'channels', 'board'].includes(r.view) ? 'analiz' : ['reviews', 'reviewer'].includes(r.view) ? 'izle' : 'kaydet';
+  document.querySelector('.app').dataset.mode = ['analytics', 'channels', 'board'].includes(r.view) ? 'analiz' : RVVIEWS.includes(r.view) ? 'izle' : 'kaydet';
   const hadLanesFocus = document.activeElement === document.querySelector('.lanes');
   renderNav(r);
   const view = $('#view');
@@ -448,6 +488,8 @@ function render() {
   else if (r.view === 'channels') renderChannels();
   else if (r.view === 'board') renderBoard();
   else if (r.view === 'reviews') renderReviews();
+  else if (r.view === 'channel') renderChannel(r);
+  else if (r.view === 'doc') renderDoc(r);
   else if (r.view === 'reviewer') renderReviewer(r);
   else if (r.view === 'plans') renderPlans();
   else if (r.view === 'notes') renderNotes();
@@ -824,48 +866,171 @@ const RVST = {inceleme: 'İncelemede', revizyon: 'Revizyon bekliyor', onaylandi:
 const RVK = {yatay: 'Yatay', short: 'Short'};
 S.rv = {list: null, sig: '', cur: null, ver: 0, key: '', hold: null, dur: 0};
 const tfmt = (t) => { t = Math.round(Math.max(0, +t || 0) * 10) / 10; const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1); };
+const RVVIEWS = ['reviews', 'channel', 'reviewer', 'doc'];
+const rvStore = {get(k, d) { try { const v = localStorage.getItem('kaydet.rv.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('kaydet.rv.' + k, JSON.stringify(v)); } catch (e) {} }};
+S.rv.tree = null; S.rv.open = new Set(rvStore.get('open', [])); S.rv.f = rvStore.get('f', 'hepsi'); S.rv.done = rvStore.get('done', false);
+const rvItems = (t) => [...t.videos.map(v => ({...v, type: 'v'})), ...t.docs.map(d => ({...d, type: 'm'}))];
+const rvHref = (it) => it.type === 'v' ? `#/izle/${it.id}` : `#/izle/m/${it.id}`;
+const rvChName = (t, id) => (t.channels.find(c => c.id === id) || {}).name || '';
+// Başlıkta kanal adı tekrarını at: "Flag Derby · Altyazı yönü a" -> "Altyazı yönü a"
+function rvShort(t, it) {
+  const n = rvChName(t, it.channel_id); let s = it.title || '';
+  if (n && s.toLowerCase().startsWith(n.toLowerCase())) s = s.slice(n.length).replace(/^\s*[·\-–—:|]\s*/, '') || it.title;
+  return s;
+}
+function rvCounts(t) {
+  const m = new Map(), add = (k) => m.set(k, (m.get(k) || 0) + 1), par = new Map();
+  t.channels.forEach(c => c.cats.forEach(k => par.set(k.id, k.parent_id)));
+  for (const it of rvItems(t)) {
+    if (it.dismissed) continue;
+    add('c' + (it.channel_id || 0));
+    if (it.cat_id) { add('k' + it.cat_id); const p = par.get(it.cat_id); if (p) add('k' + p); }
+  }
+  return m;
+}
+S.rv.seq = 0;
 async function loadReviewList(force) {
-  const l = await api('GET', '/api/review/videos'), sig = JSON.stringify(l);
+  const my = ++S.rv.seq, t = await api('GET', '/api/review/tree'), sig = JSON.stringify(t);
+  if (my !== S.rv.seq) return;  // daha yeni bir istek/yazma var: eski yanıtı at
   const changed = sig !== S.rv.sig || force;
-  S.rv.list = l; S.rv.sig = sig;
+  S.rv.tree = t; S.rv.sig = sig;
   const r = route();
-  if (changed) { if (r.view === 'reviews' || (r.view === 'reviewer' && !$('.rv'))) render(); else renderNav(r); }
-  // Claude yeni sürüm yüklediyse veya durum değiştiyse (yazı yazmıyor/oynatmıyorsan) sayfayı tazele
-  const cur = S.rv.cur, ent = cur && l.find(x => x.id === cur.id), vd = rvVideo();
+  if (changed) { if (['reviews', 'channel'].includes(r.view) || (r.view === 'reviewer' && !$('.rv')) || (r.view === 'doc' && !$('.rd'))) render(); else renderNav(r); }
+  // Claude yeni sürüm/metin yüklediyse veya durum değiştiyse (yazı yazmıyor/oynatmıyorsan) sayfayı tazele
+  const cur = S.rv.cur, vd = rvVideo(), ent = cur && t.videos.find(x => x.id === cur.id);
   if (r.view === 'reviewer' && ent && (ent.version_n !== cur.versions[cur.versions.length - 1].n || ent.status !== cur.status) &&
       !($('#rvtext') && $('#rvtext').value.trim()) && !(vd && !vd.paused)) {
     api('GET', `/api/review/videos/${cur.id}`).then(v => { if (S.rv.cur && S.rv.cur.id === v.id) { S.rv.cur = v; S.rv.ver = v.versions.length - 1; drawReviewer(); if (ent.version_n > 1) toast('Yeni sürüm hazır'); } }).catch(() => {});
   }
+  const doc = S.rv.doc, de = doc && t.docs.find(x => x.id === doc.id);
+  if (r.view === 'doc' && de && (de.updated_at !== doc.updated_at || de.status !== doc.status) && !rdBusy()) {
+    api('GET', `/api/review/docs/${doc.id}`).then(d => { if (S.rv.doc && S.rv.doc.id === d.id && !rdBusy()) { S.rv.doc = d; drawDoc(); } }).catch(() => {});
+  }
 }
+async function rvTree(method, url, body) { S.rv.seq++; S.rv.tree = await api(method, url, body); S.rv.sig = JSON.stringify(S.rv.tree); render(); }
+const rvHome = (it) => `#/izle/k/${(it && it.channel_id) || 0}`;
 function renderReviewNav(r) {
-  const l = S.rv.list || [];
-  $('#catnav').innerHTML = `<a class="navlink" href="#/izle" ${r.view === 'reviews' ? 'aria-current="page"' : ''}>Tüm videolar<span class="n">${l.length || ''}</span></a><div class="sep"></div>` +
-    l.map(v => `<a class="navlink" href="#/izle/${v.id}" ${r.view === 'reviewer' && r.id === v.id ? 'aria-current="page"' : ''}><span class="dot" style="background:${v.status === 'onaylandi' ? 'var(--ok)' : v.status === 'revizyon' ? 'var(--warn)' : 'var(--accent)'}"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(v.title)}</span></a>`).join('');
-  if (!S.rv.list && !S.rv.loading) { S.rv.loading = true; loadReviewList(true).catch(() => {}).finally(() => { S.rv.loading = false; }); }
+  const t = S.rv.tree;
+  if (!t) { $('#catnav').innerHTML = ''; if (!S.rv.loading) { S.rv.loading = true; loadReviewList(true).catch(() => {}).finally(() => { S.rv.loading = false; }); } return; }
+  const cnt = rvCounts(t);
+  const curCh = r.view === 'channel' ? r.ch : r.view === 'reviewer' ? (S.rv.cur && S.rv.cur.channel_id || 0) : r.view === 'doc' ? (S.rv.doc && S.rv.doc.channel_id || 0) : -1;
+  const curCat = r.view === 'channel' ? r.cat : 0;
+  const row = (id, name, n, open, cur, kids) => `<div class="navrow"><button class="chev" data-rv="chev" data-ch="${id}" aria-expanded="${open}" aria-label="${esc(name)} başlıklarını aç/kapat">${open ? '▾' : '▸'}</button>
+      <a class="navlink" href="#/izle/k/${id}" ${cur ? 'aria-current="page"' : ''}><span>${esc(name)}</span><span class="n">${n || ''}</span></a></div>${open ? kids : ''}`;
+  const catKids = (ch) => ch.cats.filter(c => !c.parent_id).map(c => `<a class="navlink sub" href="#/izle/k/${ch.id}/${c.id}" ${curCat === c.id ? 'aria-current="page"' : ''}><span>${esc(c.name)}</span><span class="n">${cnt.get('k' + c.id) || ''}</span></a>` +
+    ch.cats.filter(s => s.parent_id === c.id).map(s => `<a class="navlink sub2" href="#/izle/k/${ch.id}/${s.id}" ${curCat === s.id ? 'aria-current="page"' : ''}><span>${esc(s.name)}</span><span class="n">${cnt.get('k' + s.id) || ''}</span></a>`).join('')).join('');
+  const none = rvItems(t).some(i => !i.channel_id) ? row(0, 'Kanalsız', cnt.get('c0'), S.rv.open.has(0) || curCh === 0, r.view === 'channel' && r.ch === 0 && !r.cat, '') : '';
+  $('#catnav').innerHTML = `<div class="railtitle">Kanallar<button class="btn ghost sm" data-rv="chadd" aria-label="Yeni kanal ekle">+ Kanal</button></div>` +
+    t.channels.map(ch => row(ch.id, ch.name, cnt.get('c' + ch.id), S.rv.open.has(ch.id) || curCh === ch.id, r.view === 'channel' && r.ch === ch.id && !r.cat, catKids(ch))).join('') + none;
 }
 function renderReviews() {
-  const l = S.rv.list;
-  if (!l) { $('#view').innerHTML = '<p class="empty">Yükleniyor…</p>'; return; }
-  const open = l.filter(v => v.status !== 'onaylandi').length;
-  $('#view').innerHTML = `<div class="an"><div class="pagehead"><h1 tabindex="-1">Videolar</h1><span class="meta">${open} incelenecek</span></div>
-    <p class="hint">Claude’un ürettiği her video burada açılır. Videoyu izle, değiştirmek istediğin yerde durdurup o ana not yaz, bitince en alttaki “Değişikliğe başla”ya bas.</p>
-    ${l.length ? `<div class="rvlist">${l.map(v => `<a class="rvcard" href="#/izle/${v.id}"><span><span class="rvst ${esc(v.status)}">${esc(RVST[v.status] || v.status)}</span></span>
-      <b>${esc(v.title)}</b><span class="stat">${esc([v.brand, RVK[v.kind], v.platform && (PLAT[v.platform] || v.platform), 'sürüm ' + v.version_n, v.note_count + ' not'].filter(Boolean).join(' · '))}</span></a>`).join('')}</div>`
-      : '<p class="empty">Henüz video yok. Claude bir video ürettiğinde burada otomatik görünür.</p>'}</div>`;
+  const t = S.rv.tree;
+  if (!t) { $('#view').innerHTML = '<p class="empty">Yükleniyor…</p>'; return; }
+  const cnt = rvCounts(t), items = rvItems(t).filter(i => !i.dismissed), looseAny = rvItems(t).some(i => !i.channel_id);
+  const card = (id, name) => {
+    const mine = items.filter(i => (i.channel_id || 0) === id), todo = mine.filter(i => i.status !== 'onaylandi').length;
+    return `<a class="rvcard" href="#/izle/k/${id}"><b>${esc(name)}</b><span class="stat">${mine.filter(i => i.type === 'v').length} video · ${mine.filter(i => i.type === 'm').length} metin</span>
+      <span class="stat">${todo ? `<span class="rvst">${todo} incelenecek</span>` : 'Hepsi görüldü'}</span></a>`;
+  };
+  $('#view').innerHTML = `<div class="an"><div class="pagehead"><h1 tabindex="-1">Kanallar</h1><span class="meta">${t.channels.length} kanal</span>
+      <button class="btn sm" data-rv="chadd" style="margin-left:auto">+ Yeni kanal</button></div>
+    <p class="hint">Önce kanalı seç; videolar ve metinler kanalın başlıkları altında listelenir. Bitenleri ✕ ile ekrandan temizleyebilirsin.</p>
+    ${t.channels.length || looseAny ? `<div class="rvlist">${t.channels.map(c => card(c.id, c.name)).join('')}${looseAny ? card(0, 'Kanalsız') : ''}</div>`
+      : '<p class="empty">Henüz kanal yok. Claude bir video veya metin kaydedince kanalı kendiliğinden açar; “+ Yeni kanal” ile elle de ekleyebilirsin.</p>'}</div>`;
+}
+function rvRow(t, it) {
+  const m = it.type === 'v' ? [RVK[it.kind], it.platform && (PLAT[it.platform] || it.platform), 'sürüm ' + it.version_n, it.note_count + ' not']
+    : ['Metin', it.open_comments + ' açık yorum', it.dirty ? 'düzenlendi' : ''];
+  const ch = t.channels.find(c => c.id === it.channel_id);
+  const catOpts = ch ? ch.cats.filter(c => !c.parent_id).map(c => `<option value="${c.id}" ${it.cat_id === c.id ? 'selected' : ''}>${esc(c.name)}</option>` +
+    ch.cats.filter(s => s.parent_id === c.id).map(s => `<option value="${s.id}" ${it.cat_id === s.id ? 'selected' : ''}>${esc(c.name)} › ${esc(s.name)}</option>`).join('')).join('') : '';
+  const chOpts = t.channels.map(c => `<option value="${c.id}" ${it.channel_id === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+  return `<div class="rvrow ${it.dismissed ? 'is-done' : ''}" data-type="${it.type}" data-id="${it.id}">
+    <a class="rvmain" href="${rvHref(it)}"><span class="ico" aria-hidden="true">${it.type === 'v' ? '▶' : '✎'}</span><span class="rtitle">${esc(rvShort(t, it))}</span>
+      <span class="rmeta">${esc(m.filter(Boolean).join(' · '))}</span></a>
+    <span class="rvst ${esc(it.status)}">${esc(RVST[it.status] || it.status)}</span>
+    <details class="menu"><summary aria-label="İşlemler">⋯</summary><div class="pop">
+      <div class="lbl">Başlığa taşı</div><select data-rv="movecat" aria-label="Başlığa taşı"><option value="">Başlıksız</option>${catOpts}</select>
+      <div class="lbl">Kanala taşı</div><select data-rv="movech" aria-label="Kanala taşı"><option value="" ${it.channel_id ? '' : 'selected'}>Kanalsız</option>${chOpts}</select>
+    </div></details>
+    ${it.dismissed ? '<button class="btn sm" data-rv="restore">Geri al</button>' : '<button class="btn sm ghost" data-rv="dismiss" aria-label="Temizle (ekrandan kaldır)" title="Bitti, ekrandan temizle">✕</button>'}</div>`;
+}
+function renderChannel(r) {
+  const t = S.rv.tree;
+  if (!t) { $('#view').innerHTML = '<p class="empty">Yükleniyor…</p>'; return; }
+  const ch = t.channels.find(c => c.id === r.ch);
+  if (r.ch && !ch) { $('#view').innerHTML = '<p class="empty">Kanal bulunamadı. <a href="#/izle">Kanallara dön</a></p>'; return; }
+  const cats = ch ? ch.cats : [], cnt = rvCounts(t);
+  const all = rvItems(t).filter(i => (i.channel_id || 0) === r.ch);
+  const hiddenN = all.filter(i => i.dismissed).length;
+  const vis = all.filter(i => (S.rv.done || !i.dismissed) && (S.rv.f === 'hepsi' || i.type === S.rv.f));
+  const section = (title, list, head, level) => `<section class="rvsec l${level}">${head}${list.length ? `<div class="rvrows">${list.map(i => rvRow(t, i)).join('')}</div>` : '<p class="empty">Bu başlıkta öğe yok.</p>'}</section>`;
+  const catMenu = (c) => `<details class="menu"><summary aria-label="${esc(c.name)} işlemleri">⋯</summary><div class="pop">
+      <button data-rv="catrename" data-cat="${c.id}">Yeniden adlandır</button>${c.parent_id ? '' : `<button data-rv="subadd" data-cat="${c.id}">+ Alt başlık</button>`}
+      <button class="danger" data-rv="catdel" data-cat="${c.id}">Başlığı sil</button></div></details>`;
+  const head = (c, lvl) => `<div class="sechead"><h${lvl + 1}>${esc(c.name)}</h${lvl + 1}><span class="n">${cnt.get('k' + c.id) || 0}</span>${catMenu(c)}</div>`;
+  let body = '';
+  const tops = cats.filter(c => !c.parent_id && (!r.cat || c.id === r.cat || cats.find(x => x.id === r.cat && x.parent_id === c.id)));
+  for (const c of tops) {
+    const subs = cats.filter(s => s.parent_id === c.id && (!r.cat || r.cat === c.id || s.id === r.cat));
+    if (!r.cat || r.cat === c.id) body += section(c.name, vis.filter(i => i.cat_id === c.id), head(c, 1), 1);
+    else body += `<div class="crumb">${esc(c.name)} ›</div>`;
+    for (const s of subs) body += section(s.name, vis.filter(i => i.cat_id === s.id), head(s, 2), 2);
+  }
+  if (!r.cat) { const loose = vis.filter(i => !i.cat_id || !cats.some(c => c.id === i.cat_id)); if (loose.length || !cats.length) body += section('Başlıksız', loose, cats.length ? '<div class="sechead"><h2>Başlıksız</h2></div>' : '', 1); }
+  const chip = (k, l) => `<button class="chip ${S.rv.f === k ? 'on' : ''}" data-rv="filter" data-k="${k}" aria-pressed="${S.rv.f === k}">${l}</button>`;
+  $('#view').innerHTML = `<div class="an rvch"><div class="pagehead"><a class="btn sm ghost" href="#/izle">← Kanallar</a><h1 tabindex="-1">${esc(ch ? ch.name : 'Kanalsız')}</h1>
+      <span class="meta">${cnt.get('c' + r.ch) || 0} öğe</span>
+      ${ch ? `<button class="btn sm" data-rv="catadd" data-ch="${ch.id}" style="margin-left:auto">+ Başlık</button>
+      <details class="menu"><summary aria-label="Kanal işlemleri">⋯</summary><div class="pop"><button data-rv="chrename" data-ch="${ch.id}">Yeniden adlandır</button>
+      <button class="danger" data-rv="chdel" data-ch="${ch.id}">Kanalı sil</button></div></details>` : ''}</div>
+    <div class="rvtools">${chip('hepsi', 'Hepsi')}${chip('v', 'Videolar')}${chip('m', 'Metinler')}
+      ${hiddenN ? `<button class="btn sm ghost" data-rv="showdone" style="margin-left:auto">${S.rv.done ? 'Temizlenenleri gizle' : `Temizlenenleri göster (${hiddenN})`}</button>` : ''}</div>
+    ${body}</div>`;
+  $('#view h1').focus({preventScroll: true});
+}
+async function rvTreeAct(b, act) {
+  const row = b.closest('.rvrow');
+  const patch = (body) => rvTree('PATCH', `/api/review/${row.dataset.type === 'v' ? 'videos' : 'docs'}/${row.dataset.id}`, body);
+  if (act === 'chev') { const id = +b.dataset.ch; S.rv.open.has(id) ? S.rv.open.delete(id) : S.rv.open.add(id); rvStore.set('open', [...S.rv.open]); renderNav(route()); return true; }
+  if (act === 'filter') { S.rv.f = b.dataset.k; rvStore.set('f', S.rv.f); render(); return true; }
+  if (act === 'showdone') { S.rv.done = !S.rv.done; rvStore.set('done', S.rv.done); render(); return true; }
+  if (act === 'dismiss') { try { await patch({dismissed: true}); toast('Ekrandan temizlendi (Temizlenenleri göster ile geri alınır)'); } catch (e) {} return true; }
+  if (act === 'restore') { try { await patch({dismissed: false}); } catch (e) {} return true; }
+  const ask = async (title, label, value, confirm) => { const r = await dialog({title, fields: [{label, value: value || ''}], confirm}); return r && r[0].trim() ? r[0].trim() : null; };
+  if (act === 'chadd') { const n = await ask('Yeni kanal', 'Kanal adı', '', 'Ekle'); if (n) try { await rvTree('POST', '/api/review/channels', {name: n}); } catch (e) {} return true; }
+  if (act === 'chrename') { const id = +b.dataset.ch, c = S.rv.tree.channels.find(x => x.id === id), n = await ask('Kanalı yeniden adlandır', 'Kanal adı', c.name, 'Kaydet'); if (n) try { await rvTree('PATCH', `/api/review/channels/${id}`, {name: n}); } catch (e) {} return true; }
+  if (act === 'chdel') { const id = +b.dataset.ch; if (await dialog({title: 'Kanal silinsin mi?', text: 'Yalnızca boş kanal silinir; içinde öğe varsa önce taşı.', confirm: 'Sil', danger: true})) try { await rvTree('DELETE', `/api/review/channels/${id}`); location.hash = '#/izle'; } catch (e) {} return true; }
+  if (act === 'catadd') { const n = await ask('Yeni başlık', 'Başlık adı (örn. Altyazı yönleri)', '', 'Oluştur'); if (n) try { await rvTree('POST', `/api/review/channels/${b.dataset.ch}/cats`, {name: n}); } catch (e) {} return true; }
+  if (act === 'subadd') {
+    const id = +b.dataset.cat, ch = S.rv.tree.channels.find(c => c.cats.some(k => k.id === id)), n = await ask('Yeni alt başlık', 'Alt başlık adı', '', 'Oluştur');
+    if (n) try { await rvTree('POST', `/api/review/channels/${ch.id}/cats`, {name: n, parent_id: id}); } catch (e) {} return true;
+  }
+  if (act === 'catrename') { const id = +b.dataset.cat, c = S.rv.tree.channels.flatMap(x => x.cats).find(k => k.id === id), n = await ask('Başlığı yeniden adlandır', 'Başlık adı', c.name, 'Kaydet'); if (n) try { await rvTree('PATCH', `/api/review/cats/${id}`, {name: n}); } catch (e) {} return true; }
+  if (act === 'catdel') { const id = +b.dataset.cat; if (await dialog({title: 'Başlık silinsin mi?', text: 'Alt başlıkları da silinir; içindeki videolar/metinler silinmez, “Başlıksız”a düşer.', confirm: 'Sil', danger: true})) try { await rvTree('DELETE', `/api/review/cats/${id}`); if (route().cat) location.hash = rvHome({channel_id: route().ch}); } catch (e) {} return true; }
+  return false;
+}
+async function rvTreeChange(el) {
+  const row = el.closest('.rvrow'); if (!row) return false;
+  const body = el.dataset.rv === 'movecat' ? {cat_id: el.value ? +el.value : null} : {channel_id: el.value ? +el.value : null};
+  el.closest('details.menu')?.removeAttribute('open');
+  try { await rvTree('PATCH', `/api/review/${row.dataset.type === 'v' ? 'videos' : 'docs'}/${row.dataset.id}`, body); } catch (e) { render(); }
+  return true;
 }
 function renderReviewer(r) {
   const key = 'v' + r.id;
   if (S.rv.key === key && S.rv.cur && $('.rv')) return;  // oynatma/yazma sürerken yeniden çizme
   S.rv.key = key; S.rv.cur = null; S.rv.hold = null;
   $('#view').innerHTML = '<p class="empty">Yükleniyor…</p>';
-  api('GET', `/api/review/videos/${r.id}`).then(v => { if (S.rv.key !== key) return; S.rv.cur = v; S.rv.ver = v.versions.length - 1; drawReviewer(); })
+  api('GET', `/api/review/videos/${r.id}`).then(v => { if (S.rv.key !== key) return; S.rv.cur = v; S.rv.ver = v.versions.length - 1; drawReviewer(); renderNav(route()); })
     .catch(() => { if (S.rv.key === key) $('#view').innerHTML = '<p class="empty">Video bulunamadı. <a href="#/izle">Listeye dön</a></p>'; });
 }
 const rvVideo = () => $('#rvplayer');
 const rvLatest = () => S.rv.cur && S.rv.ver === S.rv.cur.versions.length - 1;
 function drawReviewer() {
   const v = S.rv.cur, ver = v.versions[S.rv.ver], latest = rvLatest(), locked = !latest || v.status === 'revizyon';
-  $('#view').innerHTML = `<div class="rv ${esc(v.kind)}"><div class="pagehead"><a class="btn sm ghost" href="#/izle">← Videolar</a><h1 tabindex="-1">${esc(v.title)}</h1>
+  $('#view').innerHTML = `<div class="rv ${esc(v.kind)}"><div class="pagehead"><a class="btn sm ghost" href="${rvHome(v)}">← ${esc((S.rv.tree && rvChName(S.rv.tree, v.channel_id)) || 'Kanallar')}</a><h1 tabindex="-1">${esc(v.title)}</h1>
       <span class="rvst ${esc(v.status)}">${esc(RVST[v.status] || v.status)}</span>
       <span class="meta">${esc([v.brand, RVK[v.kind], v.platform && (PLAT[v.platform] || v.platform)].filter(Boolean).join(' · '))}</span></div>
     <div id="rvbanner"></div>
@@ -935,6 +1100,8 @@ function rvAfter(res) {  // sunucudan gelen güncel videoyla notları tazele
 document.addEventListener('click', async (e) => {
   const b = e.target.closest('[data-rv]'); if (!b || ['SELECT', 'TEXTAREA', 'FORM'].includes(b.tagName)) return;
   const act = b.dataset.rv, vd = rvVideo(), v = S.rv.cur;
+  if (await rvTreeAct(b, act)) return;
+  if (S.rv.doc && await docAct(b, act)) return;
   if (act === 'seek' && vd) { vd.pause(); vd.currentTime = +b.dataset.t; return; }
   if (act === 'step' && vd) { vd.pause(); vd.currentTime = Math.max(0, Math.min(vd.duration || 1e9, vd.currentTime + +b.dataset.d)); if (S.rv.hold !== null) S.rv.hold = vd.currentTime; return; }
   if (act === 'last') { S.rv.ver = v.versions.length - 1; drawReviewer(); return; }
@@ -976,6 +1143,13 @@ document.addEventListener('submit', async (e) => {
 });
 document.addEventListener('change', async (e) => {
   const el = e.target.closest('[data-rv]'); if (!el) return;
+  if (el.dataset.rv === 'movecat' || el.dataset.rv === 'movech') { await rvTreeChange(el); return; }
+  if (el.dataset.rv === 'cmedit') {
+    const id = el.closest('[data-cm]').dataset.cm;
+    if (!el.value.trim()) { toast('Yorum boş olamaz'); drawDocBody(); return; }
+    try { await api('PATCH', `/api/review/comments/${id}`, {text: el.value}); } catch (err) { drawDocBody(); }
+    return;
+  }
   if (el.dataset.rv === 'rate') { const vd = rvVideo(); if (vd) vd.playbackRate = +el.value; }
   else if (el.dataset.rv === 'ver') { S.rv.ver = +el.value; drawReviewer(); }
   else if (el.dataset.rv === 'noteedit') {
@@ -996,6 +1170,181 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); vd.pause(); vd.currentTime = Math.max(0, vd.currentTime + (e.key === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 0.1 : 1)); }
 });
 
+/* ---------- Metin inceleme: cümle seç, yorum bırak, doğrudan düzenle ---------- */
+S.rv.doc = null; S.rv.pend = null; S.rv.edit = null; S.rv.fs = rvStore.get('fs', 19); S.rv.dir = rvStore.get('dir', true);
+const rdBusy = () => !!(S.rv.edit || S.rv.pend || ['TEXTAREA', 'INPUT'].includes(document.activeElement?.tagName));
+function renderDoc(r) {
+  const key = 'm' + r.id;
+  if (S.rv.key === key && S.rv.doc && $('.rd')) return;
+  S.rv.key = key; S.rv.doc = null; S.rv.pend = null; S.rv.edit = null;
+  $('#view').innerHTML = '<p class="empty">Yükleniyor…</p>';
+  api('GET', `/api/review/docs/${r.id}`).then(d => { if (S.rv.key !== key) return; S.rv.doc = d; drawDoc(); renderNav(route()); })
+    .catch(() => { if (S.rv.key === key) $('#view').innerHTML = '<p class="empty">Metin bulunamadı. <a href="#/izle">Kanallara dön</a></p>'; });
+}
+function nthIndex(content, quote, occ) {
+  let from = 0, idx = -1, first = -1;
+  for (let k = 0; k <= occ; k++) { idx = content.indexOf(quote, from); if (idx < 0) break; if (k === 0) first = idx; from = idx + 1; }
+  return idx >= 0 ? idx : first;  // sıra tutmuyorsa (metin değişti) ilk eşleşmeye düş
+}
+function docLines(d) {
+  const lines = d.content.split('\n'), starts = []; let p = 0;
+  for (const l of lines) { starts.push(p); p += l.length + 1; }
+  const cover = new Int32Array(d.content.length + 1);
+  for (const c of d.comments) {
+    const i = nthIndex(d.content, c.quote, c.occ); c.missing = i < 0;
+    if (i >= 0) for (let k = i; k < i + c.quote.length; k++) if (!cover[k]) cover[k] = c.id;
+  }
+  return {lines, starts, cover};
+}
+function runHtml(txt) { return esc(txt).replace(/\[[^\]\n]{1,140}\]/g, (m) => `<span class="dir">${m}</span>`); }
+function lineHtml(l, st, cover, byId) {
+  let out = '', i = 0;
+  while (i < l.length) {
+    const c = cover[st + i]; let j = i + 1;
+    while (j < l.length && cover[st + j] === c) j++;
+    const seg = runHtml(l.slice(i, j));
+    out += c ? `<mark data-c="${c}" class="${byId.get(c)?.state === 'uygulandi' ? 'done' : ''}">${seg}</mark>` : seg;
+    i = j;
+  }
+  return out;
+}
+function drawDoc() {
+  const d = S.rv.doc, ch = S.rv.tree && S.rv.tree.channels.find(c => c.id === d.channel_id);
+  const locked = d.status === 'revizyon';
+  $('#view').innerHTML = `<div class="rd ${S.rv.dir ? '' : 'nodir'}" style="--fs:${S.rv.fs}px"><div class="pagehead"><a class="btn sm ghost" href="${rvHome(d)}">← ${esc(ch ? ch.name : 'Kanallar')}</a>
+      <h1 tabindex="-1">${esc(d.title)}</h1><span class="rvst ${esc(d.status)}">${esc(RVST[d.status] || d.status)}</span>${d.dirty ? '<span class="rvst revizyon">arayüzde düzenlendi</span>' : ''}</div>
+    <div id="rdbanner"></div>
+    <div class="rdtools"><button class="btn sm" data-rv="fs" data-d="-1" aria-label="Yazıyı küçült">A−</button><button class="btn sm" data-rv="fs" data-d="1" aria-label="Yazıyı büyüt">A+</button>
+      <button class="btn sm" data-rv="dir">${S.rv.dir ? 'Yönergeleri gizle' : 'Yönergeleri göster'}</button>
+      ${locked ? '' : '<button class="btn sm" data-rv="editall">Tüm metni düzenle</button>'}</div>
+    <div class="rvgrid"><div id="rdwrap"><div class="rdoc" id="rdoc"></div></div>
+      <aside class="rvnotes" aria-label="Yorumlar"><div id="rdpend"></div><div id="rdcomments"></div></aside></div>
+    <div class="rvbar" id="rdbar"></div></div>`;
+  drawDocBody();
+  $('#view h1').focus({preventScroll: true});
+}
+function drawDocBody() {
+  const d = S.rv.doc, locked = d.status === 'revizyon', {lines, starts, cover} = docLines(d), byId = new Map(d.comments.map(c => [c.id, c]));
+  const ed = S.rv.edit;
+  if (ed && ed.all) {
+    $('#rdoc').innerHTML = `<textarea class="field rdall" id="rdall" aria-label="Tüm metin">${esc(d.content)}</textarea>
+      <div class="rdedit"><button class="btn primary" data-rv="saveall">Kaydet</button><button class="btn" data-rv="canceledit">Vazgeç</button><span class="hint" style="margin:0">Ctrl+Enter kaydeder, Esc vazgeçer</span></div>`;
+    $('#rdall').focus();
+  } else {
+    $('#rdoc').innerHTML = lines.map((l, i) => ed && ed.line === i
+      ? `<div class="ln editing" data-i="${i}"><textarea class="field" id="rdline" rows="${Math.max(2, Math.ceil(l.length / 70))}" aria-label="Satırı düzenle">${esc(l)}</textarea>
+          <div class="rdedit"><button class="btn sm primary" data-rv="saveline">Kaydet</button><button class="btn sm" data-rv="canceledit">Vazgeç</button></div></div>`
+      : `<div class="ln ${l.trim() ? '' : 'blank'}" data-i="${i}"><span class="lt">${lineHtml(l, starts[i], cover, byId)}</span>${locked || !l.trim() ? '' : `<button class="lnedit" data-rv="editline" data-i="${i}" aria-label="Satırı düzenle" title="Satırı düzenle">✏️</button>`}</div>`).join('');
+    const ta = $('#rdline'); if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+  }
+  const open = d.comments.filter(c => c.state === 'acik').length;
+  $('#rdcomments').innerHTML = `<h2>Yorumlar <span style="color:var(--muted);font-weight:400">${d.comments.length}</span></h2>` + (d.comments.length ? d.comments.map(c => `<div class="rvcm ${esc(c.state)}" data-cm="${c.id}">
+      <button class="quote" data-rv="cmgo" aria-label="Metinde göster">“${esc(c.quote.length > 120 ? c.quote.slice(0, 120) + '…' : c.quote)}”</button>
+      ${!locked && c.state === 'acik' ? `<textarea data-rv="cmedit" rows="2" maxlength="4000" aria-label="Yorum">${esc(c.text)}</textarea>` : `<p>${esc(c.text)}</p>`}
+      <div class="cmeta"><span class="rvst ${c.state === 'uygulandi' ? 'onaylandi' : ''}">${c.state === 'uygulandi' ? 'Uygulandı' : 'Açık'}</span>${c.missing ? '<span>metinde bulunamadı</span>' : ''}
+        ${!locked ? '<button class="btn sm ghost" data-rv="cmdel" aria-label="Yorumu sil">✕</button>' : ''}</div>
+      ${c.claude_note ? `<div class="cnote"><b>Claude:</b> ${esc(c.claude_note)}</div>` : ''}</div>`).join('')
+    : '<p class="empty">Yorum yok. Metinden bir cümle seç, çıkan “Yorum ekle”ye bas.</p>');
+  $('#rdbanner').innerHTML = locked ? `<div class="banner son"><div class="grow"><b>Revizyon istendi.</b> Claude’u aç ve “bekleyen revizyonları yap” de; bitince yeni metin burada çıkar.</div><button class="btn sm" data-rv="copyprompt">İstemi kopyala</button></div>` : '';
+  $('#rdbar').innerHTML = locked ? `<span class="grow"><b>${open}</b> yorumla revizyon bekliyor</span><button class="btn" data-rv="copyprompt">İstemi kopyala</button>`
+    : `<span class="grow"><b>${open}</b> açık yorum${d.status === 'onaylandi' ? ' · onaylandı' : ''}</span>${d.status === 'onaylandi' || open || d.dirty ? '' : '<button class="btn ghost" data-rv="docapprove">Yorumsuz onayla</button>'}
+       <button class="btn primary go" data-rv="docgo" ${open || d.dirty ? '' : 'disabled'}>Değişikliğe başla</button>`;
+  drawPend();
+}
+function drawPend() {
+  const p = S.rv.pend, el = $('#rdpend'); if (!el) return;
+  el.innerHTML = p ? `<form class="rvform" data-rv="cmform"><div class="quote2">“${esc(p.quote.length > 160 ? p.quote.slice(0, 160) + '…' : p.quote)}”</div>
+    <label class="sr" for="rdtext">Yorum</label><textarea class="field" id="rdtext" maxlength="4000" placeholder="Burada ne değişsin? (Enter: ekle · Shift+Enter: yeni satır)"></textarea>
+    <div class="row"><button class="btn" type="button" data-rv="cmcancel">Vazgeç</button><span class="grow"></span><button class="btn primary" type="submit">Yorum ekle</button></div></form>` : '';
+  if (p) $('#rdtext').focus();
+}
+// Seçimin metindeki mutlak karakter konumu (satır öğeleri + işaretli parçalar üzerinden)
+function docOffset(node, off) {
+  const el = (node.nodeType === 1 ? node : node.parentElement)?.closest('.ln'); if (!el || el.classList.contains('editing')) return -1;
+  const lt = el.querySelector('.lt'); if (!lt) return -1;
+  let n;
+  if (!lt.contains(node) && node !== lt) n = (lt.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING) || (node === el && off > 0) ? lt.textContent.length : 0;
+  else { const r = document.createRange(); r.selectNodeContents(lt); r.setEnd(node, off); n = r.toString().length; }
+  const {starts} = docLines(S.rv.doc);
+  return starts[+el.dataset.i] + n;
+}
+function docSelection() {
+  const sel = getSelection(); if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+  const r = sel.getRangeAt(0), root = $('#rdoc'); if (!root || !root.contains(r.commonAncestorContainer)) return null;
+  let a = docOffset(r.startContainer, r.startOffset), b = docOffset(r.endContainer, r.endOffset);
+  if (a < 0 || b < 0 || a === b) return null;
+  if (a > b) [a, b] = [b, a];
+  const c = S.rv.doc.content; while (a < b && /\s/.test(c[a])) a++; while (b > a && /\s/.test(c[b - 1])) b--;
+  if (a >= b) return null;
+  const quote = c.slice(a, b); let occ = 0, i = c.indexOf(quote);
+  while (i >= 0 && i < a) { occ++; i = c.indexOf(quote, i + 1); }
+  const line = c.slice(0, a).split('\n').length - 1;
+  return {quote, occ, line, rect: r.getBoundingClientRect()};
+}
+function hideFloat() { document.querySelector('#rdfloat')?.remove(); }
+document.addEventListener('mouseup', (e) => {
+  if (!S.rv.doc || !$('#rdoc') || e.target.closest('#rdfloat') || S.rv.doc.status === 'revizyon') return;
+  setTimeout(() => {
+    hideFloat(); const s = docSelection(); if (!s || S.rv.edit) return;
+    S.rv.sel = s;
+    const b = document.createElement('button'); b.id = 'rdfloat'; b.className = 'btn primary sm'; b.textContent = '💬 Yorum ekle'; b.dataset.rv = 'cmstart';
+    b.style.cssText = `position:fixed;z-index:30;left:${Math.max(8, Math.min(innerWidth - 150, s.rect.left + s.rect.width / 2 - 55))}px;top:${Math.min(innerHeight - 50, s.rect.bottom + 8)}px`;
+    b.addEventListener('mousedown', (ev) => ev.preventDefault());
+    document.body.appendChild(b);
+  }, 0);
+});
+document.addEventListener('mousedown', (e) => { if (!e.target.closest('#rdfloat')) hideFloat(); });
+async function docAct(b, act) {
+  const d = S.rv.doc;
+  if (act === 'cmstart') { S.rv.pend = S.rv.sel; hideFloat(); getSelection().removeAllRanges(); drawPend(); return true; }
+  if (act === 'cmcancel') { S.rv.pend = null; drawPend(); return true; }
+  if (act === 'fs') { S.rv.fs = Math.max(13, Math.min(34, S.rv.fs + +b.dataset.d * 2)); rvStore.set('fs', S.rv.fs); $('.rd').style.setProperty('--fs', S.rv.fs + 'px'); return true; }
+  if (act === 'dir') { S.rv.dir = !S.rv.dir; rvStore.set('dir', S.rv.dir); drawDoc(); return true; }
+  if (act === 'editall') { S.rv.edit = {all: true}; drawDocBody(); return true; }
+  if (act === 'editline') { S.rv.edit = {line: +b.dataset.i}; drawDocBody(); return true; }
+  if (act === 'canceledit') { S.rv.edit = null; drawDocBody(); return true; }
+  const save = async (content) => {
+    try { const res = await api('PUT', `/api/review/docs/${d.id}/content`, {content, expected_updated_at: d.updated_at}); S.rv.doc = res; S.rv.edit = null; drawDoc(); loadReviewList(true).catch(() => {}); toast('Kaydedildi'); }
+    catch (e) {
+      if (/başka yerden/.test(S.lastError)) {  // taslağı koru; güncel metni yükle, tekrar Kaydet'e basarsan bilerek üzerine yazılır
+        const draft = ($('#rdline') || $('#rdall'))?.value, res = await api('GET', `/api/review/docs/${d.id}`);
+        S.rv.doc = res; drawDocBody(); const ta = $('#rdline') || $('#rdall'); if (ta && draft !== undefined) ta.value = draft;
+        toast('Metin başka yerden değişti. Taslağın duruyor; yine de Kaydet dersen güncel metnin üzerine yazar');
+      }
+    }
+  };
+  if (act === 'saveline') { const lines = d.content.split('\n'); lines[S.rv.edit.line] = $('#rdline').value; await save(lines.join('\n')); return true; }
+  if (act === 'saveall') { await save($('#rdall').value); return true; }
+  if (act === 'cmgo') { const id = b.closest('[data-cm]').dataset.cm, m = document.querySelector(`#rdoc mark[data-c="${id}"]`); if (m) { m.scrollIntoView({block: 'center', behavior: 'smooth'}); m.classList.add('flash'); setTimeout(() => m.classList.remove('flash'), 1400); } else toast('Bu cümle metinde artık yok'); return true; }
+  if (act === 'cmdel') { const id = b.closest('[data-cm]').dataset.cm; try { await api('DELETE', `/api/review/comments/${id}`); S.rv.doc = await api('GET', `/api/review/docs/${d.id}`); drawDocBody(); loadReviewList(true).catch(() => {}); } catch (e) {} return true; }
+  if (act === 'docapprove') { try { S.rv.doc = await api('POST', `/api/review/docs/${d.id}/approve`); drawDoc(); loadReviewList(true).catch(() => {}); toast('Onaylandı'); } catch (e) {} return true; }
+  if (act === 'docgo') {
+    const open = d.comments.filter(c => c.state === 'acik').length;
+    if (!await dialog({title: 'Değişikliğe başlansın mı?', text: `${open} yorum${d.dirty ? ' ve doğrudan düzenleme' : ''} revizyon isteği olarak kaydedilecek. Claude bir sonraki oturumda (veya “bekleyen revizyonları yap” dediğinde) metni buna göre günceller.`, confirm: 'Değişikliğe başla'})) return true;
+    try { const res = await api('POST', `/api/review/docs/${d.id}/revise`); const ok = await copyText(res.prompt); S.rv.doc = res.doc; drawDoc(); loadReviewList(true).catch(() => {}); toast(ok ? 'Revizyon istendi. İstem de kopyalandı' : 'Revizyon istendi'); } catch (e) {}
+    return true;
+  }
+  if (act === 'copyprompt' && S.rv.key[0] === 'm') { try { toast(await copyText(await api('GET', `/api/review/docs/${d.id}/prompt`)) ? 'İstem kopyalandı. Claude’a yapıştırabilirsin' : 'Kopyalanamadı'); } catch (e) {} return true; }
+  return false;
+}
+document.addEventListener('submit', async (e) => {
+  const f = e.target.closest('[data-rv=cmform]'); if (!f) return;
+  e.preventDefault();
+  const p = S.rv.pend, ta = $('#rdtext'), text = ta.value.trim(); if (!p || S.rv.busy) return;
+  if (!text) { toast('Önce yorumu yaz'); return; }
+  S.rv.busy = true; ta.value = '';
+  try { S.rv.doc = await api('POST', `/api/review/docs/${S.rv.doc.id}/comments`, {quote: p.quote, text, line: p.line, occ: p.occ}); S.rv.pend = null; drawDocBody(); loadReviewList(true).catch(() => {}); toast('Yorum eklendi'); }
+  catch (err) { if (!ta.value) ta.value = text; }
+  finally { S.rv.busy = false; }
+});
+document.addEventListener('keydown', (e) => {
+  if (!S.rv.doc || !$('.rd')) return;
+  if (e.target.id === 'rdtext' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('[data-rv=cmform]').requestSubmit(); }
+  else if (e.target.id === 'rdtext' && e.key === 'Escape') { S.rv.pend = null; drawPend(); }
+  else if ((e.target.id === 'rdline' || e.target.id === 'rdall') && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); document.querySelector(`[data-rv=${e.target.id === 'rdall' ? 'saveall' : 'saveline'}]`).click(); }
+  else if ((e.target.id === 'rdline' || e.target.id === 'rdall') && e.key === 'Escape') { S.rv.edit = null; drawDocBody(); }
+});
+
 /* ---------- Arama ve yenileme ---------- */
 let qT;
 $('#q').addEventListener('input', (e) => { S.q = e.target.value.trim(); clearTimeout(qT); qT = setTimeout(render, 120); });
@@ -1010,7 +1359,7 @@ setInterval(() => {
   if (!typing && dragId === null && !document.hidden && !document.querySelector('details.menu[open]') && !$('#dlg').open) {
     load().catch(() => {});
     if (route().view === 'board') loadBoard().catch(() => {});
-    if (['reviews', 'reviewer'].includes(route().view)) loadReviewList().catch(() => {});
+    if (RVVIEWS.includes(route().view)) loadReviewList().catch(() => {});
     if (route().view === 'analytics' && S.an && S.an.brands.some(b => b.accounts.some(a => a.sync_status === 'calisiyor'))) loadAnalytics().catch(() => {});
   }
 }, 4000);

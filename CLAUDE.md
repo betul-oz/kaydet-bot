@@ -12,7 +12,11 @@ Instagram/TikTok/YouTube'da kaydedilen videoları Telegram botuyla kategorileyen
 - Her iş sonunda: test -> commit -> `git push` (GitHub'a kayıt kullanıcı kuralı).
 - İş panosu: oturum sonunda yaptığım/başlattığım işleri `python -m app.board durum <id> <durum>` ve `say` ile panoya yaz; oturum başında panodaki kullanıcı notlarını oku (`/api/board` ya da DB).
 
-## Video inceleme kuralı (KARARLAR #40)
-- Bu hesapta (hangi proje olursa olsun) üretilen her video bitince: `python C:\Users\ozkan\Desktop\smDataAnalyze\izle.py ekle <dosya> --baslik "..." --format yatay|short [--marka X --platform youtube --proje <klasör>]`. Çıkan `#/izle/<id>` adresini kullanıcıya ver.
-- Oturum başında `python izle.py bekleyen`: "Değişikliğe başla" denmiş videoların zaman damgalı notlarını yazar. Notlara göre yeniden üret, sonra `python izle.py yeni-surum <id> <yeni dosya>`.
-- Uygulama kapalıysa `baslat.bat` ile aç; kayıt DB'ye düşer, uygulama açılınca görünür.
+## Video ve metin inceleme kuralı (KARARLAR #40, #45)
+- Bu hesapta (hangi proje olursa olsun) üretilen her video ve yazılan her metin (senaryo, açıklama, plan) bitince incelemeye kaydedilir:
+  - Video: `python C:\Users\ozkan\Desktop\smDataAnalyze\izle.py ekle <dosya> --baslik "..." --marka "<Kanal>" --kategori "<Başlık>[/<Alt başlık>]" --format yatay|short [--platform youtube --proje <klasör>]`
+  - Metin: `python C:\Users\ozkan\Desktop\smDataAnalyze\izle.py metin-ekle <dosya.md> --baslik "..." --marka "<Kanal>" --kategori "<Başlık>[/<Alt başlık>]"`
+  - Çıkan adresi kullanıcıya ver. Kanal = marka/kanal adı (örn. Flag Derby), başlık = konu grubu (örn. Altyazı yönleri), alt başlık = gerekiyorsa daha ince grup.
+- Oturum başında `python izle.py bekleyen`: "Değişikliğe başla" denmiş video (zaman damgalı not) ve metin (cümle yorumu) revizyonlarını yazar. Uygula, sonra `izle.py yeni-surum <id> <yeni video>` veya `izle.py metin-guncelle <id> <dosya> --not "ne yaptın"`. Kullanıcı metni arayüzde düzenlediyse önce `izle.py metin-al <id>`.
+- `KAYDET_SERVER` + `KAYDET_TOKEN` ortam değişkeni varsa komutlar yayındaki sunucuya yazar (docs/DEPLOY.md); yoksa yerel veritabanına.
+- Uygulama kapalıysa `baslat.bat` ile aç; kayıt DB'ye düşer.

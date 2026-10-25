@@ -1,6 +1,8 @@
 """config.yaml ve categories.yaml okuma."""
 from __future__ import annotations
 
+import os
+
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -17,6 +19,9 @@ class Config:
     web_host: str = "127.0.0.1"
     web_port: int = 8000
     allowed_hosts: list[str] = field(default_factory=list)  # web_host=0.0.0.0 iken erişilecek adlar
+    media_dir: str = "media"  # yayındaki sunucuya yüklenen videolar (izle.py --sunucu)
+    password: str = ""  # doluysa web arayüzü şifreyle açılır (yayın için zorunlu)
+    api_token: str = ""  # izle.py'nin yayındaki sunucuya yazması için (Bearer)
 
 
 def fold(text: str) -> str:
@@ -157,6 +162,33 @@ def _as_port(value) -> int:
 
 
 def load_config(path: str | Path) -> Config:
+    """config.yaml, sonra KAYDET_* ortam değişkenleri (yayın/Docker için) okunur; ortam değişkeni önceliklidir."""
+    return apply_env(_load_file(path))
+
+
+def apply_env(cfg: Config, env=None) -> Config:
+    env = os.environ if env is None else env
+    if env.get("KAYDET_DB"):
+        cfg.db_path = env["KAYDET_DB"]
+    if env.get("KAYDET_MEDIA_DIR"):
+        cfg.media_dir = env["KAYDET_MEDIA_DIR"]
+    if env.get("KAYDET_HOST"):
+        cfg.web_host = env["KAYDET_HOST"]
+    if env.get("KAYDET_PORT") or env.get("PORT"):
+        try:
+            cfg.web_port = _as_port(int(env.get("KAYDET_PORT") or env["PORT"]))
+        except ValueError:
+            raise ValueError("KAYDET_PORT/PORT sayı olmalı")
+    if env.get("KAYDET_ALLOWED_HOSTS"):
+        cfg.allowed_hosts = [h.strip() for h in env["KAYDET_ALLOWED_HOSTS"].split(",") if h.strip()]
+    if env.get("KAYDET_PASSWORD"):
+        cfg.password = env["KAYDET_PASSWORD"]
+    if env.get("KAYDET_TOKEN"):
+        cfg.api_token = env["KAYDET_TOKEN"]
+    return cfg
+
+
+def _load_file(path: str | Path) -> Config:
     p = Path(path)
     if not p.exists():
         return Config()
@@ -170,4 +202,7 @@ def load_config(path: str | Path) -> Config:
         web_host=str(data.get("web_host", "127.0.0.1")),
         web_port=_as_port(data.get("web_port", 8000)),
         allowed_hosts=_as_list(data.get("allowed_hosts")),
+        media_dir=str(data.get("media_dir", "media")),
+        password=str(data.get("password") or ""),
+        api_token=str(data.get("api_token") or ""),
     )

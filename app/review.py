@@ -14,7 +14,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-from . import board
+from . import board, channels
 
 KINDS = ("yatay", "short")
 STATUSES = ("inceleme", "revizyon", "onaylandi")
@@ -76,7 +76,7 @@ def _touch(conn: sqlite3.Connection, video_id: int) -> None:
 
 
 def add_video(conn: sqlite3.Connection, path: str, title: str, *, brand: str = "", kind: str = "yatay",
-              platform: str = "", project_dir: str = "") -> tuple[int, bool]:
+              platform: str = "", project_dir: str = "", category: str = "") -> tuple[int, bool]:
     """(video_id, yeni_mi). Aynı dosya yolu ikinci kez eklenmez."""
     full = _check_file(path)
     title = " ".join(title.split())
@@ -87,8 +87,14 @@ def add_video(conn: sqlite3.Connection, path: str, title: str, *, brand: str = "
     row = conn.execute("SELECT video_id FROM rv_versions WHERE path = ?", (full,)).fetchone()
     if row:
         return row["video_id"], False
-    cur = conn.execute("INSERT INTO rv_videos (title, brand, kind, platform, project_dir) VALUES (?, ?, ?, ?, ?)",
-                       (title, brand.strip()[:60], kind, platform.strip()[:20], project_dir.strip()[:500]))
+    brand = " ".join(brand.split())
+    try:
+        ch = channels.ensure_channel(conn, brand)
+        cat = channels.ensure_cat(conn, ch, category) if category.strip() and ch else None
+    except channels.ChannelError as e:
+        raise ReviewError(str(e))
+    cur = conn.execute("INSERT INTO rv_videos (title, brand, kind, platform, project_dir, channel_id, cat_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                       (title, brand.strip()[:60], kind, platform.strip()[:20], project_dir.strip()[:500], ch, cat))
     vid = cur.lastrowid
     conn.execute("INSERT INTO rv_versions (video_id, n, path) VALUES (?, 1, ?)", (vid, full))
     conn.commit()
@@ -148,6 +154,25 @@ def list_videos(conn: sqlite3.Connection) -> list[dict]:
         v["note_count"] = conn.execute("SELECT COUNT(*) FROM rv_notes WHERE version_id = ?", (last["id"],)).fetchone()[0]
         out.append(v)
     return out
+
+
+def tree(conn: sqlite3.Connection) -> dict:
+    """Arayüzün tek çağrıda aldığı özet: kanallar > başlıklar, videolar ve metinler (içeriksiz)."""
+    from . import texts
+    return {"channels": channels.channel_list(conn), "videos": list_videos(conn), "docs": texts.list_docs(conn)}
+
+
+def patch_video(conn: sqlite3.Connection, video_id: int, *, title: str | None = None, dismissed: bool | None = None) -> None:
+    if conn.execute("SELECT 1 FROM rv_videos WHERE id = ?", (video_id,)).fetchone() is None:
+        raise ReviewError("Video yok", 404)
+    if title is not None:
+        title = " ".join(title.split())
+        if not title or len(title) > 200:
+            raise ReviewError("Başlık 1-200 karakter olmalı")
+        conn.execute("UPDATE rv_videos SET title = ? WHERE id = ?", (title, video_id))
+    if dismissed is not None:
+        conn.execute("UPDATE rv_videos SET dismissed = ? WHERE id = ?", (int(dismissed), video_id))
+    conn.commit()
 
 
 def get_video(conn: sqlite3.Connection, video_id: int) -> dict:
@@ -281,42 +306,8 @@ def pending_prompts(conn: sqlite3.Connection) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    from . import db
-    from .config import load_config
-    ap = argparse.ArgumentParser(prog="python izle.py")
-    sub = ap.add_subparsers(dest="cmd", required=True)
-    a = sub.add_parser("ekle"); a.add_argument("dosya"); a.add_argument("--baslik", required=True)
-    a.add_argument("--marka", default=""); a.add_argument("--format", dest="kind", default="yatay", choices=KINDS)
-    a.add_argument("--platform", default=""); a.add_argument("--proje", default="")
-    s = sub.add_parser("yeni-surum"); s.add_argument("id", type=int); s.add_argument("dosya")
-    sub.add_parser("bekleyen")
-    args = ap.parse_args(argv)
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    base = Path(os.environ.get("IZLE_CWD") or ".")  # izle.py klasör değiştirmeden önceki çağıran klasör
-
-    def abs_(p: str) -> str:
-        q = Path(p).expanduser()
-        return str(q if q.is_absolute() else (base / q).resolve())
-
-    cfg = load_config(abs_(os.environ.get("KAYDET_CONFIG", "config.yaml")) if os.environ.get("KAYDET_CONFIG") else "config.yaml")
-    conn = db.connect(cfg.db_path)
-    try:
-        if args.cmd == "ekle":
-            vid, new = add_video(conn, abs_(args.dosya), args.baslik, brand=args.marka, kind=args.kind,
-                                 platform=args.platform, project_dir=abs_(args.proje) if args.proje else "")
-            print(f"video {vid} {'eklendi' if new else 'zaten kayıtlı'}: http://{cfg.web_host if cfg.web_host not in ('0.0.0.0', '::', '') else '127.0.0.1'}:{cfg.web_port}/#/izle/{vid}")
-        elif args.cmd == "yeni-surum":
-            ver_id = add_version(conn, args.id, abs_(args.dosya))
-            print("sürüm", conn.execute("SELECT n FROM rv_versions WHERE id = ?", (ver_id,)).fetchone()["n"], "kaydedildi")
-        else:
-            prompts = pending_prompts(conn)
-            print("\n\n".join(prompts) if prompts else "Bekleyen revizyon yok.")
-    except ReviewError as e:
-        print(e)
-        return 1
-    finally:
-        conn.close()
-    return 0
+    from .izle_cli import main as cli_main
+    return cli_main(argv)
 
 
 if __name__ == "__main__":

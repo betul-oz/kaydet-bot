@@ -12,7 +12,7 @@ import uvicorn
 from . import analytics, db, reminders
 from .bot import build_application
 from .catalog import Catalog
-from .config import load_categories, load_config
+from .config import Categories, load_categories, load_config
 from .downloader import Downloader
 from .web import create_app
 
@@ -36,10 +36,21 @@ def main() -> int:
     load_env()
     try:
         config = load_config("config.yaml")
-        categories = load_categories("categories.yaml")
+        try:
+            categories = load_categories("categories.yaml")
+        except FileNotFoundError:
+            if not os.environ.get("KAYDET_DEPLOY"):
+                raise
+            categories = Categories()  # yayın (Docker): Kaydet kategorileri boş başlar, web'den eklenir
     except (FileNotFoundError, ValueError) as e:
         print(f"Ayar hatası: {e}")
         return 1
+    local = ("127.0.0.1", "localhost", "::1", "[::1]")
+    if (config.web_host not in local or any(h not in local for h in config.allowed_hosts)) and not config.password:
+        print("Ayar hatası: web yerel olmayan bir adreste açılıyor ama KAYDET_PASSWORD (şifre) yok. "
+              "Şifresiz yayın güvenli değil; şifre ver ya da web_host'u 127.0.0.1 yap (tünel/alan adı için allowed_hosts da buna dahildir).")
+        return 1
+    Path(config.media_dir).mkdir(parents=True, exist_ok=True)
 
     db.connect(config.db_path).close()  # şemayı oluştur
     downloader = Downloader(config.db_path, config.downloads_dir, config.cookies_file)

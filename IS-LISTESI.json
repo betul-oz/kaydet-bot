@@ -120,6 +120,12 @@
       "ad": "Video inceleme arayuzu (#/izle): izle, tam ana zaman damgali not, Degisiklige basla -> revizyon istemi + is panosu; uretilen her video CLI ile buraya kaydolur",
       "durum": "bitti",
       "model": "Opus 5.5"
+    },
+    {
+      "id": 21,
+      "ad": "Kanal > baslik > alt baslik agaci, X ile temizleme, metin inceleme (yt yazi-arayuzu tasindi), yayin (sifre/token/yukleme, Dockerfile, Dokploy rehberi)",
+      "durum": "bitti",
+      "model": "Opus 5.5"
     }
   ]
 }

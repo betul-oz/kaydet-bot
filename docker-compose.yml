@@ -1,0 +1,16 @@
+# Dokploy (Compose) veya yerel Docker için. Değişkenleri Dokploy'da "Environment" bölümüne gir.
+services:
+  kaydet:
+    build: .
+    restart: unless-stopped
+    environment:
+      KAYDET_PASSWORD: ${KAYDET_PASSWORD:?şifre zorunlu}
+      KAYDET_TOKEN: ${KAYDET_TOKEN:?izle.py için token zorunlu}
+      KAYDET_ALLOWED_HOSTS: ${KAYDET_ALLOWED_HOSTS:?alan adın, örn. kaydet.ornek.com}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+    volumes:
+      - kaydet-data:/data
+    expose:
+      - "8000"
+volumes:
+  kaydet-data:

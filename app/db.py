@@ -4,7 +4,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from . import analytics, board, review
+from . import analytics, board, channels, review, texts
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS items (
@@ -54,6 +54,9 @@ def connect(path: str | Path) -> sqlite3.Connection:
     conn.executescript(analytics.SCHEMA)
     conn.executescript(board.SCHEMA)
     conn.executescript(review.SCHEMA)
+    conn.executescript(channels.SCHEMA)
+    conn.executescript(texts.SCHEMA)
+    channels.migrate(conn)
     return conn
 
 

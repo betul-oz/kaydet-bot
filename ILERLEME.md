@@ -1,5 +1,11 @@
 # ILERLEME
 
+## 2026-10-25 - Oturum 5 (devam): İş 21 bitti (kanal ağacı, metin inceleme, yayın hazırlığı)
+- Yapıldı: Videolar modu kanal > başlık > alt başlık ağacına geçti (sol ray yalnızca ağaç + sayı; kanal sayfasında bölümler; başlık/alt başlık oluştur-adlandır-sil; taşı), ✕ ile temizle / geri al, metin inceleme (cümle yorumu, düzenleme, revizyon), yayın katmanı (şifre, token, yükleme, Dockerfile, docker-compose, `docs/DEPLOY.md`). KARARLAR #43-47.
+- Test: 144 geçti. Denetçi (Opus) bulguları düzeltildi: giriş gövde sınırı, IP başına kilit, tünel için de şifre, metin-guncelle kullanıcı düzenlemesini ezmez (--zorla), çakışmada taslak korunur, kanalsız temizlenenler geri alınır, sunucu dosya temizliği, SQLite uyumu, tek seferlik göç, https zorunlu. Bilerek bırakılan: ad karşılaştırmada Türkçe İ/ı, çıkışta oturum iptali yok. Tarayıcıda izole veriyle görüldü: kanal/alt başlık sayfası, temizle/geri al, metinde seçim→yorum→revizyon→`metin-guncelle`→sayfa kendiliğinden güncellendi. Docker derlemesi bu makinede (docker yok) DENENMEDİ; Dokploy'da ilk derleme gerçek sınav.
+- Kullanıcıdan gereken: Dokploy'da `docs/DEPLOY.md` adımları (KAYDET_PASSWORD, KAYDET_TOKEN, KAYDET_ALLOWED_HOSTS, /data hacmi, alan adı); sonra PowerShell'de KAYDET_SERVER ve KAYDET_TOKEN.
+- Sınır: yerel `kaydet.db` yayına taşınmaz (eski videolar `izle.py ekle` ile yeniden yüklenmeli). yt klasöründeki eski `yazi-arayuzu` dokunulmadı; eski .md dosyaları toplu içe aktarılmadı.
+
 ## 2026-10-24 - Oturum 5: İş 20 bitti (Video inceleme arayüzü)
 - Yapıldı: "Videolar" modu (`#/izle`): oynatıcı, durdurunca/yazmaya başlayınca tam ana zaman damgalı not, zaman çizgisinde işaret, ±0,1/1 sn adım, hız, kısayollar, sürüm geçmişi, altta "Değişikliğe başla" (KARARLAR #39-42). `app/review.py`, `izle.py` (her klasörden çalışır), `/api/review/*`. Kural global CLAUDE.md'ye ve proje CLAUDE.md'ye yazıldı.
 - Test: 128 geçti (10 yeni). Denetçi (Opus) bulguları düzeltildi: açık sayfanın yeni sürüme geçmesi, çift Enter, revizyonda not/onay kilidi, atomik revizyon talebi, pano işi senkronu, 60 sn taşması, yol çözümleme, medya gömme engeli. Tarayıcıda izole veriyle denendi: yatay + short, not ekleme (Enter), revizyon isteme, CLI ile yeni sürüm, açık sayfanın otomatik yeni sürüme geçmesi.

@@ -1,19 +1,23 @@
 """Web arayüzü ve JSON API (FastAPI). Varsayılan olarak yalnızca bu bilgisayardan erişilir."""
 from __future__ import annotations
 
+import hmac
+import os
+import re
+import uuid
 from contextlib import closing
 from pathlib import Path
 
 from typing import Annotated
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, RedirectResponse
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, StringConstraints
 
-from . import analytics, board, db, review
+from . import analytics, auth, board, channels, db, review, texts
 from .cards import format_card
 from .catalog import Catalog, CatalogError
 from .config import Categories, Config
@@ -143,6 +147,73 @@ class NoteEdit(BaseModel):
     text: str = Field(max_length=2000)
 
 
+class NameBody(BaseModel):
+    name: str = Field(max_length=100)
+
+
+class CatCreate(NameBody):
+    parent_id: int | None = None
+
+
+class ItemPatch2(BaseModel):
+    """Video veya metin: başlık, yerleşim, temizleme. Alan gelmediyse dokunulmaz."""
+    title: str | None = Field(None, max_length=200)
+    dismissed: bool | None = None
+    channel_id: int | None = None
+    cat_id: int | None = None
+
+
+class CommentAdd(BaseModel):
+    quote: str = Field(max_length=800)
+    text: str = Field(max_length=4000)
+    line: int = Field(0, ge=0, le=1_000_000)
+    occ: int = Field(0, ge=0, le=1_000_000)
+
+
+class TextBody(BaseModel):
+    text: str = Field(max_length=4000)
+
+
+class CommentPatch(BaseModel):
+    text: str = Field(max_length=4000)
+
+
+class DocContent(BaseModel):
+    content: str = Field(max_length=4_000_000)
+    expected_updated_at: str | None = None
+
+
+MAX_UPLOAD = int(os.environ.get("KAYDET_MAX_UPLOAD_MB", "3072")) * 1024 * 1024
+
+
+class HubVideo(BaseModel):
+    ref: str = Field(max_length=100)
+    title: str = Field(max_length=200)
+    brand: str = Field("", max_length=60)
+    category: str = Field("", max_length=130)
+    kind: str = Field("yatay", max_length=10)
+    platform: str = Field("", max_length=20)
+    project_dir: str = Field("", max_length=500)
+
+
+class HubVersion(BaseModel):
+    ref: str = Field(max_length=100)
+
+
+class HubDoc(BaseModel):
+    title: str = Field(max_length=200)
+    content: str = Field(max_length=4_000_000)
+    brand: str = Field("", max_length=60)
+    category: str = Field("", max_length=130)
+    source_path: str = Field("", max_length=500)
+
+
+class HubUpdate(BaseModel):
+    content: str = Field(max_length=4_000_000)
+    note: str = Field("", max_length=2000)
+    force: bool = False
+
+
 class BatchAdd(BaseModel):
     title: str = Field("", max_length=100)
     start: str = Field(max_length=10)
@@ -168,6 +239,63 @@ def create_app(config: Config, categories: Categories,
             if cross or (origin and (urlparse(origin).hostname or "") not in origin_hosts):
                 return JSONResponse({"detail": "Başka siteden gelen istek reddedildi"}, status_code=403)
         return await call_next(request)
+
+    # Yayın: şifre (tarayıcı, çerez) ve token (izle.py) ile giriş. İkisi de boşsa kapalı (yerel kullanım).
+    auth_on = bool(config.password or config.api_token)
+    limiter = auth.FailLimiter()
+
+    @app.middleware("http")
+    async def require_auth(request: Request, call_next):
+        if not auth_on or request.url.path in ("/login", "/logout", "/healthz"):
+            return await call_next(request)
+        if auth.token_ok(config.api_token, request.headers.get("authorization")) or \
+                auth.cookie_ok(config.password, request.cookies.get(auth.COOKIE)):
+            return await call_next(request)
+        if request.url.path.startswith("/api/"):
+            return JSONResponse({"detail": "Giriş gerekli"}, status_code=401)
+        return RedirectResponse("/login", status_code=303)
+
+    @app.get("/healthz")
+    def healthz():
+        return PlainTextResponse("ok")
+
+    @app.get("/login")
+    def login_page():
+        if not config.password:
+            if config.api_token:
+                return PlainTextResponse("Tarayıcı girişi için KAYDET_PASSWORD tanımlı değil.", status_code=503)
+            return RedirectResponse("/", status_code=303)
+        return HTMLResponse(auth.LOGIN_HTML.replace("__ERR__", ""), headers={"Cache-Control": "no-store"})
+
+    @app.post("/login")
+    async def login(request: Request):
+        if not config.password:
+            return RedirectResponse("/", status_code=303)
+        # Proxy'nin (Traefik) eklediği son X-Forwarded-For değeri; yoksa doğrudan bağlanan adres
+        who = request.headers.get("x-forwarded-for", "").split(",")[-1].strip() or (request.client.host if request.client else "")
+        if limiter.blocked(who):
+            return HTMLResponse(auth.LOGIN_HTML.replace("__ERR__", '<p class="err">Çok fazla hatalı deneme; birkaç dakika bekle.</p>'), status_code=429)
+        raw = b""
+        async for chunk in request.stream():  # giriş yapmamış istemci bellek dolduramasın
+            raw += chunk
+            if len(raw) > 4096:
+                return HTMLResponse("Gövde çok büyük", status_code=413)
+        form = parse_qs(raw.decode("utf-8", "replace"))
+        given = (form.get("password") or [""])[0]
+        if not hmac.compare_digest(given.encode(), config.password.encode()):
+            limiter.add(who)
+            return HTMLResponse(auth.LOGIN_HTML.replace("__ERR__", '<p class="err">Şifre yanlış.</p>'), status_code=401)
+        secure = request.headers.get("x-forwarded-proto") == "https" or request.url.scheme == "https"
+        resp = RedirectResponse("/", status_code=303)
+        resp.set_cookie(auth.COOKIE, auth.make_cookie(config.password), max_age=auth.SESSION_DAYS * 86400,
+                        httponly=True, samesite="lax", secure=secure)
+        return resp
+
+    @app.post("/logout")
+    def logout():
+        resp = RedirectResponse("/login", status_code=303)
+        resp.delete_cookie(auth.COOKIE)
+        return resp
 
     def conn():
         return closing(db.connect(config.db_path))
@@ -491,9 +619,226 @@ def create_app(config: Config, categories: Categories,
     @app.delete("/api/review/videos/{video_id}")
     def review_delete(video_id: int):
         with conn() as c:
+            paths = [r["path"] for r in c.execute("SELECT path FROM rv_versions WHERE video_id = ?", (video_id,))]
             if not review.delete_video(c, video_id):
                 raise HTTPException(404, "Video yok")
+        # Yalnızca sunucunun yüklediği (media_dir altındaki) dosyalar silinir; yerel yoldaki dosyaya dokunulmaz
+        root = Path(config.media_dir).resolve()
+        for p in paths:
+            try:
+                q = Path(p).resolve()
+                if root in q.parents:
+                    q.unlink(missing_ok=True)
+            except OSError:
+                pass
+        return {"ok": True}
+
+    # ---- Kanal > başlık > alt başlık ağacı ve temizleme ----
+    def ch_call(fn, *args, **kw):
+        try:
+            return fn(*args, **kw)
+        except channels.ChannelError as e:
+            raise HTTPException(e.status, str(e))
+
+    @app.get("/api/review/tree")
+    def review_tree():
+        with conn() as c:
+            return review.tree(c)
+
+    @app.post("/api/review/channels", status_code=201)
+    def channel_add(body: NameBody):
+        with conn() as c:
+            ch_call(channels.add_channel, c, body.name)
+            return review.tree(c)
+
+    @app.patch("/api/review/channels/{channel_id}")
+    def channel_rename(channel_id: int, body: NameBody):
+        with conn() as c:
+            ch_call(channels.rename_channel, c, channel_id, body.name)
+            return review.tree(c)
+
+    @app.delete("/api/review/channels/{channel_id}")
+    def channel_delete(channel_id: int):
+        with conn() as c:
+            ch_call(channels.delete_channel, c, channel_id)
+            return review.tree(c)
+
+    @app.post("/api/review/channels/{channel_id}/cats", status_code=201)
+    def cat_add_(channel_id: int, body: CatCreate):
+        with conn() as c:
+            ch_call(channels.add_cat, c, channel_id, body.name, body.parent_id)
+            return review.tree(c)
+
+    @app.patch("/api/review/cats/{cat_id}")
+    def cat_rename_(cat_id: int, body: NameBody):
+        with conn() as c:
+            ch_call(channels.rename_cat, c, cat_id, body.name)
+            return review.tree(c)
+
+    @app.delete("/api/review/cats/{cat_id}")
+    def cat_delete_(cat_id: int):
+        with conn() as c:
+            ch_call(channels.delete_cat, c, cat_id)
+            return review.tree(c)
+
+    def patch_item_(c, table, item_id, body: ItemPatch2, fn, errcall):
+        sent = body.model_fields_set
+        if "channel_id" in sent or "cat_id" in sent:
+            ch_call(channels.place, c, table, item_id, channel_id=body.channel_id, cat_id=body.cat_id,
+                    set_channel="channel_id" in sent, set_cat="cat_id" in sent)
+        if "title" in sent or "dismissed" in sent:
+            errcall(fn, c, item_id, title=body.title, dismissed=body.dismissed)
+        return review.tree(c)
+
+    @app.patch("/api/review/videos/{video_id}")
+    def review_video_patch(video_id: int, body: ItemPatch2):
+        with conn() as c:
+            return patch_item_(c, "rv_videos", video_id, body, review.patch_video, review_call)
+
+    # ---- Metin inceleme ----
+    def text_call(fn, *args, **kw):
+        try:
+            return fn(*args, **kw)
+        except texts.TextError as e:
+            raise HTTPException(e.status, str(e))
+
+    @app.get("/api/review/docs/{doc_id}")
+    def doc_get(doc_id: int):
+        with conn() as c:
+            return text_call(texts.get_doc, c, doc_id)
+
+    @app.patch("/api/review/docs/{doc_id}")
+    def doc_patch(doc_id: int, body: ItemPatch2):
+        with conn() as c:
+            return patch_item_(c, "rv_docs", doc_id, body, texts.patch_doc, text_call)
+
+    @app.delete("/api/review/docs/{doc_id}")
+    def doc_delete(doc_id: int):
+        with conn() as c:
+            text_call(texts.delete_doc, c, doc_id)
+            return review.tree(c)
+
+    @app.put("/api/review/docs/{doc_id}/content")
+    def doc_content(doc_id: int, body: DocContent):
+        with conn() as c:
+            text_call(texts.save_content, c, doc_id, body.content, expected_updated_at=body.expected_updated_at)
+            return texts.get_doc(c, doc_id)
+
+    @app.post("/api/review/docs/{doc_id}/comments", status_code=201)
+    def doc_comment_add(doc_id: int, body: CommentAdd):
+        with conn() as c:
+            text_call(texts.add_comment, c, doc_id, body.quote, body.text, line=body.line, occ=body.occ)
+            return texts.get_doc(c, doc_id)
+
+    @app.patch("/api/review/comments/{comment_id}")
+    def doc_comment_edit(comment_id: int, body: CommentPatch):
+        with conn() as c:
+            text_call(texts.edit_comment, c, comment_id, body.text)
             return {"ok": True}
+
+    @app.delete("/api/review/comments/{comment_id}")
+    def doc_comment_delete(comment_id: int):
+        with conn() as c:
+            text_call(texts.delete_comment, c, comment_id)
+            return {"ok": True}
+
+    @app.post("/api/review/docs/{doc_id}/revise")
+    def doc_revise(doc_id: int):
+        with conn() as c:
+            prompt = text_call(texts.request_revision, c, doc_id)
+            return {"prompt": prompt, "doc": texts.get_doc(c, doc_id)}
+
+    @app.get("/api/review/docs/{doc_id}/prompt", response_class=PlainTextResponse)
+    def doc_prompt(doc_id: int):
+        with conn() as c:
+            text_call(texts.get_doc, c, doc_id)
+            return texts.revision_prompt(c, doc_id)
+
+    @app.post("/api/review/docs/{doc_id}/approve")
+    def doc_approve(doc_id: int):
+        with conn() as c:
+            text_call(texts.approve, c, doc_id)
+            return texts.get_doc(c, doc_id)
+
+    # ---- Yayındaki sunucuya izle.py ile gönderme (token) ----
+    media = Path(config.media_dir)
+
+    def media_ref(ref: str) -> str:
+        if not re.fullmatch(r"[0-9a-f]{32}\.[a-z0-9]{2,5}", ref or ""):
+            raise HTTPException(400, "Geçersiz dosya başvurusu")
+        p = media / ref
+        if not p.is_file():
+            raise HTTPException(404, "Yüklenmiş dosya yok; önce yükle")
+        return str(p)
+
+    @app.put("/api/hub/upload")
+    async def hub_upload(request: Request, filename: str):
+        ext = Path(filename).suffix.lower()
+        if ext not in review.VIDEO_EXT:
+            raise HTTPException(400, "Desteklenen biçimler: " + ", ".join(sorted(review.VIDEO_EXT)))
+        media.mkdir(parents=True, exist_ok=True)
+        ref = f"{uuid.uuid4().hex}{ext}"
+        tmp, size = media / (ref + ".part"), 0
+        try:
+            with open(tmp, "wb") as f:
+                async for chunk in request.stream():
+                    size += len(chunk)
+                    if size > MAX_UPLOAD:
+                        raise HTTPException(413, "Dosya çok büyük")
+                    f.write(chunk)
+            os.replace(tmp, media / ref)
+        finally:
+            tmp.unlink(missing_ok=True)
+        return {"ref": ref, "size": size}
+
+    @app.post("/api/hub/videos", status_code=201)
+    def hub_video(body: HubVideo):
+        path = media_ref(body.ref)
+        try:
+            with conn() as c:
+                vid, new = review_call(review.add_video, c, path, body.title, brand=body.brand, kind=body.kind,
+                                       platform=body.platform, project_dir=body.project_dir, category=body.category)
+        except HTTPException:
+            Path(path).unlink(missing_ok=True)
+            raise
+        return {"id": vid}
+
+    @app.post("/api/hub/videos/{video_id}/versions", status_code=201)
+    def hub_version(video_id: int, body: HubVersion):
+        path = media_ref(body.ref)
+        try:
+            with conn() as c:
+                review_call(review.add_version, c, video_id, path)
+        except HTTPException:
+            Path(path).unlink(missing_ok=True)
+            raise
+        return {"ok": True}
+
+    @app.post("/api/hub/docs", status_code=201)
+    def hub_doc(body: HubDoc):
+        with conn() as c:
+            did, new = text_call(texts.add_doc, c, body.title, body.content, brand=body.brand,
+                                 category=body.category, source_path=body.source_path)
+            return {"id": did, "new": new}
+
+    @app.post("/api/hub/docs/{doc_id}/update")
+    def hub_doc_update(doc_id: int, body: HubUpdate):
+        with conn() as c:
+            text_call(texts.apply_update, c, doc_id, body.content, body.note, force=body.force)
+            return {"ok": True}
+
+    @app.post("/api/hub/docs/{doc_id}/synced")
+    def hub_doc_synced(doc_id: int):
+        with conn() as c:
+            text_call(texts.get_doc, c, doc_id)
+            texts.mark_synced(c, doc_id)
+            return {"ok": True}
+
+    @app.get("/api/hub/pending", response_class=PlainTextResponse)
+    def hub_pending():
+        with conn() as c:
+            prompts = review.pending_prompts(c) + texts.pending_prompts(c)
+            return "\n\n".join(prompts) if prompts else "Bekleyen revizyon yok."
 
     # ---- Kategori / alt başlık yönetimi ----
     def edit(fn, *args):
