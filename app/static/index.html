@@ -298,6 +298,17 @@ dialog:has(.pdlg){width:min(720px,94vw);max-width:94vw;overflow-x:hidden}.pdlg{w
 .rec.yap{border-left-color:var(--ok)}.rec.birak{border-left-color:var(--danger)}.rec.uyari{border-left-color:var(--warn)}.rec.dene{border-left-color:var(--accent)}.rec.bilgi{border-left-color:var(--line)}
 .rec .ric{font-size:18px;line-height:1.3}.rlb{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .hl{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.hl h4{margin:0 0 6px;font:600 14px var(--head)}.hl ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+
+.vscores{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.vsc{min-width:84px;border-radius:12px;padding:6px 12px;display:flex;flex-direction:column;align-items:center;background:var(--lane)}
+.vsc b{font:700 22px var(--head)}.vsc span{font-size:12px;color:var(--muted)}.vsc.ok b{color:var(--ok)}.vsc.warn b{color:var(--warn)}.vsc.bad b{color:var(--danger)}
+.vticks{position:relative;height:16px;margin-top:2px;font-size:11px;color:var(--muted)}.vticks span{position:absolute;transform:translateX(-2px)}
+.vatl{width:100%;height:110px;display:block;background:var(--lane);border-radius:10px;margin-top:6px}.vb{fill:var(--accent)}.vb.low{fill:var(--danger);opacity:.8}.vc{stroke:var(--ok);stroke-width:.12;opacity:.9}
+.vhook{fill:var(--accent-soft);opacity:.9}.vlow{fill:none;stroke:var(--danger);stroke-width:.15;stroke-dasharray:.6 .4}.vt{font-size:2.6px;fill:var(--muted)}
+.vleg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:6px 0}.vleg .lg{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.lg.hook{background:var(--accent-soft);border:1px solid var(--accent)}.lg.low{background:var(--danger)}.lg.cut{background:var(--ok)}
+.vnums{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:10px 0}.vnums div{display:flex;flex-direction:column}.vnums b{font:600 16px var(--head)}.vnums span{font-size:12px;color:var(--muted)}
+.vsec{margin:14px 0 6px;font:600 15px var(--head)}.vbrief{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;border:1px solid var(--line);margin:4px 0;background:var(--surface)}
+.vbrief.sorun{border-left:4px solid var(--danger)}.vbrief.dikkat{border-left:4px solid var(--warn)}.vbrief.iyi{border-left:4px solid var(--ok)}.vwhen{font-weight:600;color:var(--accent);margin-right:4px}.vfix{margin-top:4px;color:var(--muted);font-size:14px}
 </style>
 </head>
 <body>
@@ -741,6 +752,69 @@ document.addEventListener('submit', async (e) => {
   const ta = f.querySelector('textarea'), text = ta.value.trim(); if (!text) { toast('Önce planı yaz'); return; }
   const x = await run('POST', `/api/analytics/brands/${f.dataset.brand}/plan`, {text, platform: f.querySelector('select').value});
   if (x) { S.an = x; S.board = null; toast('Plana eklendi'); render(); }
+});
+
+
+/* ---------- Video içi analiz (hook / orta / ses) ---------- */
+const VA_SECTION = {hook: 'Hook (ilk 3 saniye)', orta: 'Orta (sıkıcılaşan bölümler)', ritim: 'Ritim', ses: 'Ses', bitis: 'Bitiş'};
+const VA_ICON = {sorun: '🔴', dikkat: '🟡', iyi: '🟢'};
+const vaTime = (sec) => { sec = Math.round(sec); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); };
+const vaCls = (v) => v >= 75 ? 'ok' : v >= 50 ? 'warn' : 'bad';
+const VA = {timers: {}};
+function vaTimeline(res) {
+  const tl = res.timeline, n = tl.seconds, low = res.features.low_zones || [];
+  const bars = tl.energy.map((e, i) => `<rect x="${i + 0.05}" y="${56 - Math.max(0.5, e * 52)}" width="0.9" height="${Math.max(0.5, e * 52)}" class="vb ${e < 0.22 ? 'low' : ''}"><title>${vaTime(i)} · enerji ${e}${tl.loud[i] != null ? ' · ' + tl.loud[i] + ' LUFS' : ''}${tl.cuts[i] ? ' · kesme' : ''}</title></rect>`).join('');
+  const cuts = tl.cut_times.map(t => `<line x1="${t}" x2="${t}" y1="0" y2="58" class="vc"/>`).join('');
+  const lows = low.map(z => `<rect x="${z.start}" y="0" width="${z.end - z.start}" height="58" class="vlow"/>`).join('');
+  const step = n > 600 ? 120 : n > 180 ? 30 : 5;
+  const ticks = Array.from({length: Math.floor(n / step) + 1}, (_, k) => k * step).filter(t => t <= n).map(t => `<span style="left:${t / Math.max(n, 6) * 100}%">${vaTime(t)}</span>`).join('');
+  return `<svg class="vatl" viewBox="0 0 ${Math.max(n, 6)} 58" preserveAspectRatio="none" role="img" aria-label="Saniye bazlı enerji grafiği">
+    <rect x="0" y="0" width="${Math.min(3, n)}" height="58" class="vhook"/>${lows}${bars}${cuts}</svg><div class="vticks">${ticks}</div>
+    <div class="vleg"><span><i class="lg hook"></i>ilk 3 sn (hook)</span><span><i class="lg low"></i>düşük enerji bölümü</span><span><i class="lg cut"></i>kesme</span><span class="stat">Çubuk = saniyenin enerjisi (hareket + ses + kesme)</span></div>`;
+}
+function vaRender(box, key, rec, title, seekable) {
+  if (!box.isConnected) return;
+  if (rec.status === 'none') {
+    box.innerHTML = `<section class="brandbox"><h2>Video analizi</h2><p>Videoyu analiz edip <b>hook</b>, <b>ortada sıkıcılaşan bölümler</b>, ritim ve ses için brief çıkarır. ${key.startsWith('post') ? 'Herkese açık videoyu küçük çözünürlükte indirir (1-2 dakika sürebilir).' : ''}</p>
+      <button class="btn primary" data-va="start" data-key="${key}">Analiz et</button></section>`;
+    return;
+  }
+  if (rec.status === 'queued' || rec.status === 'running') {
+    box.innerHTML = `<section class="brandbox"><h2>Video analizi</h2><p>⏳ Analiz sürüyor… (${rec.status === 'queued' ? 'sırada' : 'çalışıyor'}) Bu sayfa kendiliğinden güncellenir.</p></section>`;
+    clearTimeout(VA.timers[key]); VA.timers[key] = setTimeout(() => vaMount(box, key, title, seekable), 3000); return;
+  }
+  if (rec.status === 'error') {
+    box.innerHTML = `<section class="brandbox"><h2>Video analizi</h2><div class="err">${esc(rec.error || 'Analiz başarısız')}</div><button class="btn" data-va="start" data-key="${key}">Tekrar dene</button></section>`;
+    return;
+  }
+  const r = rec.result, f = r.features, sc = r.scores;
+  const chip = (k, l) => `<div class="vsc ${vaCls(sc[k])}"><b>${sc[k]}</b><span>${l}</span></div>`;
+  const groups = Object.keys(VA_SECTION).map(k => [k, r.briefs.filter(b => b.section === k)]).filter(([, l]) => l.length);
+  const brief = (b) => `<div class="vbrief ${b.level}"><span aria-hidden="true">${VA_ICON[b.level]}</span><div>
+      <span class="vwhen">${seekable ? `<button class="rvts" data-rv="seek" data-t="${b.at[0]}">${vaTime(b.at[0])}–${vaTime(b.at[1])}</button>` : `${vaTime(b.at[0])}–${vaTime(b.at[1])}`}</span> ${esc(b.text)}
+      ${b.fix ? `<div class="vfix"><b>Ne yap:</b> ${esc(b.fix)}</div>` : ''}</div></div>`;
+  const nums = [['Süre', vaTime(f.duration)], ['Kesme', f.cut_count], ['Ort. plan', f.avg_shot != null ? f.avg_shot + ' sn' : '–'], ['İlk kesme', f.first_cut != null ? f.first_cut + ' sn' : 'yok'],
+    ['Ses başlangıcı', f.audio_start != null ? f.audio_start + ' sn' : (f.has_audio ? '–' : 'ses yok')], ['Ses seviyesi', f.integrated_lufs != null ? f.integrated_lufs + ' LUFS' : '–'], ['Sessizlik', f.silence_ratio != null ? '%' + Math.round(f.silence_ratio * 100) : '–']];
+  box.innerHTML = `<section class="brandbox"><div class="ihead"><h2>Video analizi</h2><span class="grow"></span><button class="btn sm" data-va="claude" data-key="${key}" data-title="${esc(title || '')}">Claude’a ver (derin yorum)</button><button class="btn sm ghost" data-va="start" data-key="${key}">Yeniden analiz et</button></div>
+    <div class="vscores">${chip('hook', 'Hook')}${chip('orta', 'Orta')}${chip('ritim', 'Ritim')}${chip('ses', 'Ses')}${chip('bitis', 'Bitiş')}</div>
+    ${vaTimeline(r)}
+    <div class="vnums">${nums.map(([k, v]) => `<div><b>${esc(String(v))}</b><span>${k}</span></div>`).join('')}</div>
+    ${groups.length ? groups.map(([k, list]) => `<h3 class="vsec">${VA_SECTION[k]}</h3>${list.map(brief).join('')}`).join('') : '<p class="empty">Belirgin bir sorun bulunmadı.</p>'}
+    <p class="stat" style="margin-top:10px">Otomatik tahmin: görüntü değişimi, kesme, sessizlik ve ses seviyesinden hesaplanır. İzleyicinin gerçekte nerede bıraktığı için platform panelindeki tutma eğrisine de bak. Konuşma metni ve yüz/yazı analizi sonraki sürümde.</p></section>`;
+}
+async function vaMount(box, key, title, seekable) {
+  try { vaRender(box, key, await api('GET', `/api/analysis/${key.replace(':', '/')}`), title, seekable); } catch (e) { if (box.isConnected) box.innerHTML = '<p class="empty">Analiz bilgisi alınamadı.</p>'; }
+}
+function loadVideoAnalysis(p, a) { const box = $('#vidanalysis'); if (box) vaMount(box, 'post:' + p.id, p.title, false); }
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-va]'); if (!b) return;
+  const key = b.dataset.key, box = b.closest('#vidanalysis') || $('#vidanalysis');
+  if (b.dataset.va === 'start') {
+    const seekable = key.startsWith('rv:'), t = (S.rv && S.rv.cur && S.rv.cur.title) || '';
+    try { vaRender(box, key, await api('POST', `/api/analysis/${key.replace(':', '/')}`), t, seekable); } catch (err) {}
+  } else if (b.dataset.va === 'claude') {
+    try { await showPrompt(await api('GET', `/api/analysis/${key.replace(':', '/')}/prompt`), 'Claude’a ver: video analizi'); } catch (err) {}
+  }
 });
 
 /* ---------- Kanal tabloları (platform başına tek tablo, tüm markalar) ---------- */
@@ -1269,11 +1343,13 @@ function drawReviewer() {
       ${locked ? '' : `<form class="rvform" data-rv="form"><div class="row"><span class="tm">⏱ <span id="rvtm">0:00.0</span></span><span class="grow" id="rvtmhint">Yazmaya başlayınca video durur, not o ana bağlanır</span></div>
         <label class="sr" for="rvtext">Bu ana not</label><textarea class="field" id="rvtext" maxlength="2000" placeholder="Bu anda ne değişsin? (Enter: ekle · Shift+Enter: yeni satır)"></textarea>
         <div class="row"><span class="grow"></span><button class="btn primary" type="submit">Bu ana not ekle</button></div></form>`}
+      <details class="vanalysis" id="rvva"><summary>Video analizi: hook, orta, ses</summary><div id="vidanalysis"></div></details>
       <p class="rvhelp"><kbd>Boşluk</kbd> oynat/durdur · <kbd>N</kbd> not yaz · <kbd>←</kbd><kbd>→</kbd> 1 sn · <kbd>Shift</kbd>+ok 0,1 sn</p>
     </div>
     <aside class="rvnotes" aria-label="Notlar"><div id="rvvers"></div><div id="rvnotelist"></div></aside></div>
     <div class="rvbar" id="rvbar"></div></div>`;
   S.rv.dur = 0; drawReviewNotes();
+  $('#rvva')?.addEventListener('toggle', (ev) => { if (ev.target.open && !$('#vidanalysis').dataset.loaded) { $('#vidanalysis').dataset.loaded = '1'; vaMount($('#vidanalysis'), 'rv:' + ver.id, v.title, true); } });
   const vd = rvVideo();
   if (vd) {
     vd.addEventListener('loadedmetadata', () => { S.rv.dur = vd.duration || 0; drawTrack(); });

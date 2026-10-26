@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Red
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, StringConstraints
 
-from . import analytics, auth, board, channels, db, planning, review, texts
+from . import analytics, auth, board, channels, db, planning, review, texts, vidanalysis
 from .cards import format_card
 from .catalog import Catalog, CatalogError
 from .config import Categories, Config
@@ -235,7 +235,7 @@ class BatchAdd(BaseModel):
 
 def create_app(config: Config, categories: Categories,
                downloader: Downloader | None = None, catalog: Catalog | None = None,
-               syncer: analytics.Syncer | None = None) -> FastAPI:
+               syncer: analytics.Syncer | None = None, analyzer: vidanalysis.Runner | None = None) -> FastAPI:
     app = FastAPI(title="kaydet-bot", docs_url=None, redoc_url=None, openapi_url=None)
     # DNS rebinding'e karşı: yalnızca yerel adlarla (ve config.allowed_hosts ile) erişim
     hosts = {"localhost", "127.0.0.1", "[::1]", *config.allowed_hosts}
@@ -480,6 +480,49 @@ def create_app(config: Config, categories: Categories,
             return fn(*args)
         except analytics.AnalyticsError as e:
             raise HTTPException(e.status, str(e))
+
+    # ---- Video içi analiz (hook / orta / ses): 'post:<id>' herkese açık video, 'rv:<sürüm id>' kendi videomuz ----
+    runner = analyzer or vidanalysis.Runner(config.db_path, db.connect, config.cookies_file)
+
+    def va_title(c, kind: str, ref: int) -> str:
+        if kind == "post":
+            row = c.execute("SELECT title, url FROM posts WHERE id = ?", (ref,)).fetchone()
+            return (row["title"] or row["url"]) if row else ""
+        row = c.execute("SELECT v.title FROM rv_versions s JOIN rv_videos v ON v.id = s.video_id WHERE s.id = ?", (ref,)).fetchone()
+        return row["title"] if row else ""
+
+    def va_check(kind: str):
+        if kind not in ("post", "rv"):
+            raise HTTPException(404, "Bilinmeyen tür")
+
+    @app.get("/api/analysis/{kind}/{ref}")
+    def va_get(kind: str, ref: int):
+        va_check(kind)
+        with conn() as c:
+            return vidanalysis.get(c, f"{kind}:{ref}")
+
+    @app.post("/api/analysis/{kind}/{ref}")
+    def va_start(kind: str, ref: int):
+        va_check(kind)
+        with conn() as c:
+            if not va_title(c, kind, ref):
+                raise HTTPException(404, "Video yok")
+            if kind == "rv":
+                p = c.execute("SELECT path FROM rv_versions WHERE id = ?", (ref,)).fetchone()["path"]
+                if not Path(p).is_file():
+                    raise HTTPException(404, "Video dosyası bulunamadı")
+            if not runner.submit(c, f"{kind}:{ref}"):
+                raise HTTPException(409, "Analiz zaten sürüyor")
+            return vidanalysis.get(c, f"{kind}:{ref}")
+
+    @app.get("/api/analysis/{kind}/{ref}/prompt", response_class=PlainTextResponse)
+    def va_prompt(kind: str, ref: int):
+        va_check(kind)
+        with conn() as c:
+            rec = vidanalysis.get(c, f"{kind}:{ref}")
+            if rec["status"] != "done":
+                raise HTTPException(409, "Önce analizi çalıştır")
+            return vidanalysis.claude_prompt(va_title(c, kind, ref), rec["result"])
 
     @app.post("/api/analytics/brands", status_code=201)
     def brand_add(body: BrandBody):
