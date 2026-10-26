@@ -27,7 +27,7 @@ def _dt(s: str | None) -> datetime | None:
 def summarize(tasks: list[dict], today: date | None = None, now: datetime | None = None) -> dict:
     """tasks: iş panosu satırları (status, due, created_at, updated_at, platform, title, id)."""
     now = now or datetime.now(timezone.utc)
-    today = today or now.date()
+    today = today or datetime.now().astimezone().date()  # gecikme hesabı yerel (Türkiye) tarihine göre
     done = [t for t in tasks if t["status"] == DONE]
     active = [t for t in tasks if t["status"] in ACTIVE]
     total = len(tasks)

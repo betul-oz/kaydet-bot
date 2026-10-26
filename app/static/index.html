@@ -556,7 +556,9 @@ const fday = (d) => (d || '').slice(0, 10) || '–';
 const fdate = (iso) => iso ? new Date(iso.slice(0, 10) + 'T00:00:00').toLocaleDateString('tr-TR', {day: 'numeric', month: 'long'}) : '–';
 const xs = (v) => v == null ? '–' : v + '×';
 const pc = (v) => v == null ? '–' : '%' + v;
-async function loadAnalytics() { S.an = await api('GET', '/api/analytics'); render(); }
+// Yazarken/diyalog açıkken yoklama sayfayı yeniden çizmesin (yazılan plan kaybolmasın)
+const anBusy = () => !!document.querySelector('.bulk[open]') || $('#dlg').open || ['TEXTAREA', 'INPUT'].includes(document.activeElement?.tagName);
+async function loadAnalytics() { S.anAt = Date.now(); S.an = await api('GET', '/api/analytics'); if (!anBusy()) render(); }
 const VERDICT = {zamaninda: ['Zamanında', 'ok'], gecikme: ['Gecikme riski', 'bad'], 'gecikmis-var': ['Gecikmiş iş var', 'warn'], 'hiz-yok': ['Hız verisi yok', 'muted'], bitti: ['Bitti', 'ok'], 'plan-yok': ['Plan yok', 'muted']};
 const verdictChip = (p) => { const [l, c] = VERDICT[p.verdict] || ['', 'muted']; return `<span class="vchip ${c}">${l}</span>`; };
 const LEVEL = {yap: ['✅', 'Yap'], birak: ['⛔', 'Bırak'], dene: ['🧪', 'Dene'], uyari: ['⚠️', 'Dikkat'], bilgi: ['ℹ️', 'Bilgi']};
@@ -638,6 +640,7 @@ function accountRow(a) {
       <a class="btn sm primary" href="#/analiz/h/${a.id}">Analiz sayfası</a>
       ${a.platform === 'youtube' ? `<button class="btn sm" data-act="ansync" ${a.sync_status === 'calisiyor' ? 'disabled' : ''}>Verileri çek</button>` : ''}
       <button class="btn sm" data-act="anpost">Video linki ekle</button>
+      <select class="field" data-an="accmove" data-acc="${a.id}" aria-label="Başka markaya taşı" style="min-height:32px;padding:2px 8px;max-width:150px"><option value="">Taşı…</option>${(S.an.brands || []).filter(x => x.id && x.brand !== a.brand).map(x => `<option value="${x.id}">${esc(x.brand)}</option>`).join('')}</select>
       <button class="btn sm ghost danger" data-act="andel" aria-label="Hesabı kaldır">✕</button></div>
     ${a.sync_error ? `<div class="err">${esc(a.sync_error)}</div>` : ''}</div>`;
 }
@@ -707,6 +710,7 @@ function renderPostPage(p, a) {
 }
 
 function renderAnalytics(r) {
+  if (S.an && Date.now() - (S.anAt || 0) > 5000) { S.anAt = Date.now(); api('GET', '/api/analytics').then(x => { S.an = x; if (!anBusy()) render(); }).catch(() => {}); }  // pano/plan değişmiş olabilir
   if (!S.an) { $('#view').innerHTML = '<p class="empty">Analiz verisi yükleniyor…</p>'; loadAnalytics().catch(() => {}); return; }
   let view = null, h1 = true;
   if (r.account) { const a = findAcc(r.account); if (a) { renderAccount(a); view = 1; } }
@@ -745,6 +749,11 @@ document.addEventListener('click', async (e) => {
       async (v) => { const x = await run('POST', '/api/analytics/accounts', {brand: br.brand, platform: v[0], handle: v[1]}); if (x) S.an = x; return !!x; });
     if (v) { toast('Hesap eklendi'); render(); }
   }
+});
+document.addEventListener('change', async (e) => {
+  const el = e.target.closest('[data-an=accmove]'); if (!el || !el.value) return;
+  const x = await run('PATCH', `/api/analytics/accounts/${el.dataset.acc}`, {brand_id: +el.value});
+  if (x) { S.an = x; toast('Hesap taşındı'); render(); } else el.value = '';
 });
 document.addEventListener('submit', async (e) => {
   const f = e.target.closest('[data-an=planform]'); if (!f) return;

@@ -30,7 +30,8 @@ def top_and_weak(posts: list[dict], k: int = 3) -> dict:
             "weak": [slim(p) for p in sorted(ripe, key=lambda p: p["outlier"])[:k]]}
 
 
-def recommendations(posts: list[dict], ins: dict, *, now: datetime | None = None) -> list[dict]:
+def recommendations(posts: list[dict], ins: dict, *, now: datetime | None = None, synced: bool = True) -> list[dict]:
+    """synced=False (TikTok/Instagram'da videolar elle eklendiyse): yayın sıklığı önerisi çıkarılmaz, çünkü listenin tamamı yoktur."""
     now = now or datetime.now(timezone.utc)
     out: list[dict] = []
     n = ins.get("n_scored", 0)
@@ -42,7 +43,8 @@ def recommendations(posts: list[dict], ins: dict, *, now: datetime | None = None
     sh = [p for p in posts if p.get("format") == "short" and p.get("outlier") is not None]
     lo = [p for p in posts if p.get("format") == "uzun" and p.get("outlier") is not None]
     if len(sh) >= MIN_N and len(lo) >= MIN_N:
-        ms, ml = statistics.median(p["views"] for p in sh if p.get("views")), statistics.median(p["views"] for p in lo if p.get("views"))
+        vs, vl = [p["views"] for p in sh if p.get("views")], [p["views"] for p in lo if p.get("views")]
+        ms, ml = (statistics.median(vs) if vs else 0), (statistics.median(vl) if vl else 0)
         if ms and ml and (ms / ml >= 1.5 or ml / ms >= 1.5):
             win, lose, r = ("Short", "uzun videodan", ms / ml) if ms > ml else ("Uzun video", "Short'tan", ml / ms)
             out.append(_rec("yap", f"{win} bu hesapta {lose} {r:.1f}× daha çok izleniyor: ağırlığı artır.",
@@ -75,7 +77,7 @@ def recommendations(posts: list[dict], ins: dict, *, now: datetime | None = None
             out.append(_rec("birak", f"Başlıkta “{r['feature']}” kullanmak zayıf sonuç vermiş ({r['lift']}×): azalt.",
                             f"Var: {r['med_yes']}× (n={r['n_yes']}), yok: {r['med_no']}× (n={r['n_no']})", 3))
     # --- konu (anahtar kelime) ---
-    kw = [k for k in ins.get("keywords", []) if k["n"] >= 3]
+    kw = [k for k in ins.get("keywords", []) if k["n"] >= 5]
     if kw and kw[0]["median"] >= 1.4:
         k = kw[0]
         out.append(_rec("yap", f"“{k['word']}” konulu videolar en çok tutan grup ({k['median']}×, {k['n']} video): bu konuda seri düşün.",
@@ -90,7 +92,7 @@ def recommendations(posts: list[dict], ins: dict, *, now: datetime | None = None
         q = max(2, len(ranked) // 4)
         eng_top = statistics.median(p["engagement"] for p in ranked[:q])
         eng_all = statistics.median(p["engagement"] for p in scored)
-        if eng_all and eng_top < eng_all * 0.8:
+        if eng_all and eng_top < eng_all * 0.6:
             out.append(_rec("dene", "En çok izlenen videolarda etkileşim düşük: izleniyor ama tepki yok. Sonuna net bir çağrı (yorum sorusu, kaydet/paylaş) ekle.",
                             f"En çok izlenen {q} videoda medyan etkileşim %{eng_top:.2f}, hesap geneli %{eng_all:.2f}", 2))
     # --- trend ---
@@ -108,7 +110,7 @@ def recommendations(posts: list[dict], ins: dict, *, now: datetime | None = None
             dts.append(datetime.strptime((p.get("posted_at") or "")[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc))
         except ValueError:
             pass
-    if dts:
+    if dts and synced:
         last = max(dts)
         gap = (now - last).days
         per30 = sum((now - d).days <= 30 for d in dts)
@@ -121,5 +123,10 @@ def recommendations(posts: list[dict], ins: dict, *, now: datetime | None = None
     if sus:
         out.append(_rec("uyari", f"{len(sus)} videoda beğeni oranı çok düşük (reklam ya da şüpheli trafik olabilir): bu videoları skor değerlendirmesinde ayrı tut.",
                         "Beğeni/1000 izlenme eşiğin altında.", 3))
+    if n < 10:  # az veride kesin dil kullanma
+        for r in out:
+            if r["level"] in ("yap", "birak", "dene"):
+                r["text"] = "İpucu: " + r["text"]
+                r["why"] += " (örnek az: kesin değil)"
     out.sort(key=lambda r: (r["prio"], {"uyari": 0, "yap": 1, "birak": 2, "dene": 3, "bilgi": 4}[r["level"]]))
     return out[:14]

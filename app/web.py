@@ -507,6 +507,10 @@ def create_app(config: Config, categories: Categories,
         with conn() as c:
             if not va_title(c, kind, ref):
                 raise HTTPException(404, "Video yok")
+            if kind == "post":
+                d = c.execute("SELECT duration FROM posts WHERE id = ?", (ref,)).fetchone()["duration"]
+                if d and d > vidanalysis.MAX_SECONDS:
+                    raise HTTPException(400, f"Video çok uzun ({d // 60} dk); en çok {vidanalysis.MAX_SECONDS // 60} dk analiz edilir")
             if kind == "rv":
                 p = c.execute("SELECT path FROM rv_versions WHERE id = ?", (ref,)).fetchone()["path"]
                 if not Path(p).is_file():
@@ -552,6 +556,9 @@ def create_app(config: Config, categories: Categories,
             items = planning.parse_lines(body.text, body.platform)
             if not items:
                 raise HTTPException(400, "En az bir satır yaz: Başlık | tarih | platform")
+            for n, it in enumerate(items, 1):  # önce hepsini doğrula: kısmi yazım ve kopya olmasın
+                if len(it["title"]) > 200:
+                    raise HTTPException(400, f"{n}. satırın başlığı 200 karakterden uzun")
             for it in items:
                 board_call(board.add_task, c, it["title"], brand=row["name"], platform=it["platform"], due=it["due"])
             return analytics.overview(c)
