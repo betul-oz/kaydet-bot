@@ -264,6 +264,9 @@ mark{background:#FFE58A;color:#241d00;border-radius:3px;padding:0 1px}mark.done{
 @media (prefers-color-scheme: dark){mark{background:#6B5A12;color:#FFF3C4}mark.done{background:#1F4A33;color:#D9F5E6}}
 .dir{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:0 6px;font-size:.78em;line-height:1.5;vertical-align:.1em}
 .nodir .dir{display:none}
+.rddiff{margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}.dhunk{margin:6px 0}.dhunk small{color:var(--muted)}
+.dl{font-size:13px;line-height:1.45;border-radius:6px;padding:2px 6px;margin:2px 0;overflow-wrap:anywhere}.dl.del{background:#FBE3E6;color:#7A1020}.dl.add{background:#DDF3E8;color:#14553A}
+@media (prefers-color-scheme: dark){.dl.del{background:#3A1A20;color:#FFB4BF}.dl.add{background:#173326;color:#A8EBC8}}
 .rvcm{border-top:1px solid var(--line);padding-top:8px;display:flex;flex-direction:column;gap:6px}
 .rvcm .quote{text-align:left;background:var(--lane);border:0;border-left:3px solid var(--accent);border-radius:6px;padding:6px 8px;color:var(--muted);cursor:pointer;font-size:13px}
 .rvcm textarea{width:100%;resize:vertical;background:transparent;border:1px solid var(--line);border-radius:8px;padding:6px 8px}.rvcm p{margin:0;overflow-wrap:anywhere}
@@ -987,7 +990,7 @@ function renderReviews(r) {
 }
 function rvRow(t, it) {
   const m = it.type === 'v' ? [RVK[it.kind], it.platform && (PLAT[it.platform] || it.platform), 'sürüm ' + it.version_n, it.note_count + ' not']
-    : ['Metin', it.open_comments + ' açık yorum', it.dirty ? 'düzenlendi' : ''];
+    : ['Metin', it.open_comments + ' açık yorum', it.edits ? it.edits + ' düzenleme' : ''];
   const ch = t.channels.find(c => c.id === it.channel_id);
   const kcs = ch ? ch.cats.filter(c => c.kind === it.type) : [];
   const catOpts = ch ? kcs.filter(c => !c.parent_id).map(c => `<option value="${c.id}" ${it.cat_id === c.id ? 'selected' : ''}>${esc(c.name)}</option>` +
@@ -1258,7 +1261,7 @@ function drawDoc() {
   const d = S.rv.doc, ch = S.rv.tree && S.rv.tree.channels.find(c => c.id === d.channel_id);
   const locked = d.status === 'revizyon';
   $('#view').innerHTML = `<div class="rd ${S.rv.dir ? '' : 'nodir'}" style="--fs:${S.rv.fs}px"><div class="pagehead"><a class="btn sm ghost" href="${rvHome(d, 'metin')}">← ${esc(ch ? ch.name : 'Kanallar')}</a>
-      <h1 tabindex="-1">${esc(d.title)}</h1><span class="rvst ${esc(d.status)}">${esc(RVST[d.status] || d.status)}</span>${d.dirty ? '<span class="rvst revizyon">arayüzde düzenlendi</span>' : ''}</div>
+      <h1 tabindex="-1">${esc(d.title)}</h1><span class="rvst ${esc(d.status)}">${esc(RVST[d.status] || d.status)}</span>${d.changes.length ? `<span class="rvst revizyon">${d.changes.length} düzenleme</span>` : ''}</div>
     <div id="rdbanner"></div>
     <div class="rdtools"><button class="btn sm" data-rv="fs" data-d="-1" aria-label="Yazıyı küçült">A−</button><button class="btn sm" data-rv="fs" data-d="1" aria-label="Yazıyı büyüt">A+</button>
       <button class="btn sm" data-rv="dir">${S.rv.dir ? 'Yönergeleri gizle' : 'Yönergeleri göster'}</button>
@@ -1283,8 +1286,11 @@ function drawDocBody() {
       : `<div class="ln ${l.trim() ? '' : 'blank'}" data-i="${i}"><span class="lt">${lineHtml(l, starts[i], cover, byId)}</span>${locked || !l.trim() ? '' : `<button class="lnedit" data-rv="editline" data-i="${i}" aria-label="Satırı düzenle" title="Satırı düzenle">✏️</button>`}</div>`).join('');
     const ta = $('#rdline'); if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
   }
-  const open = d.comments.filter(c => c.state === 'acik').length;
-  $('#rdcomments').innerHTML = `<h2>Yorumlar <span style="color:var(--muted);font-weight:400">${d.comments.length}</span></h2>` + (d.comments.length ? d.comments.map(c => `<div class="rvcm ${esc(c.state)}" data-cm="${c.id}">
+  const open = d.comments.filter(c => c.state === 'acik').length, edits = d.changes.length;
+  const diffHtml = edits ? `<div class="rddiff"><h2>Elle düzenlemelerin <span style="color:var(--muted);font-weight:400">${edits}</span></h2>
+    <p class="hint" style="margin:0 0 6px">Claude’a revizyonda bunlar da gider (− silinen, + eklenen cümle).</p>
+    ${d.changes.map(h => `<div class="dhunk"><small>satır ${h.line}</small>${h.removed.map(x => `<div class="dl del">− ${esc(x)}</div>`).join('')}${h.added.map(x => `<div class="dl add">+ ${esc(x)}</div>`).join('')}</div>`).join('')}</div>` : '';
+  $('#rdcomments').innerHTML = diffHtml + `<h2>Yorumlar <span style="color:var(--muted);font-weight:400">${d.comments.length}</span></h2>` + (d.comments.length ? d.comments.map(c => `<div class="rvcm ${esc(c.state)}" data-cm="${c.id}">
       <button class="quote" data-rv="cmgo" aria-label="Metinde göster">“${esc(c.quote.length > 120 ? c.quote.slice(0, 120) + '…' : c.quote)}”</button>
       ${!locked && c.state === 'acik' ? `<textarea data-rv="cmedit" rows="2" maxlength="4000" aria-label="Yorum">${esc(c.text)}</textarea>` : `<p>${esc(c.text)}</p>`}
       <div class="cmeta"><span class="rvst ${c.state === 'uygulandi' ? 'onaylandi' : ''}">${c.state === 'uygulandi' ? 'Uygulandı' : 'Açık'}</span>${c.missing ? '<span>metinde bulunamadı</span>' : ''}
@@ -1292,9 +1298,9 @@ function drawDocBody() {
       ${c.claude_note ? `<div class="cnote"><b>Claude:</b> ${esc(c.claude_note)}</div>` : ''}</div>`).join('')
     : '<p class="empty">Yorum yok. Metinden bir cümle seç, çıkan “Yorum ekle”ye bas.</p>');
   $('#rdbanner').innerHTML = locked ? `<div class="banner son"><div class="grow"><b>Revizyon istendi.</b> Claude’u aç ve “bekleyen revizyonları yap” de; bitince yeni metin burada çıkar.</div><button class="btn sm" data-rv="copyprompt">İstemi kopyala</button></div>` : '';
-  $('#rdbar').innerHTML = locked ? `<span class="grow"><b>${open}</b> yorumla revizyon bekliyor</span><button class="btn" data-rv="copyprompt">İstemi kopyala</button>`
-    : `<span class="grow"><b>${open}</b> açık yorum${d.status === 'onaylandi' ? ' · onaylandı' : ''}</span>${d.status === 'onaylandi' || open || d.dirty ? '' : '<button class="btn ghost" data-rv="docapprove">Yorumsuz onayla</button>'}
-       <button class="btn primary go" data-rv="docgo" ${open || d.dirty ? '' : 'disabled'}>Değişikliğe başla</button>`;
+  $('#rdbar').innerHTML = locked ? `<span class="grow"><b>${open}</b> yorum${edits ? ` + <b>${edits}</b> elle düzenleme` : ''} ile revizyon bekliyor</span><button class="btn" data-rv="copyprompt">İstemi kopyala</button>`
+    : `<span class="grow"><b>${open}</b> açık yorum${edits ? ` · <b>${edits}</b> elle düzenleme` : ''}${d.status === 'onaylandi' ? ' · onaylandı' : ''}</span>${d.status === 'onaylandi' || open || edits ? '' : '<button class="btn ghost" data-rv="docapprove">Yorumsuz onayla</button>'}
+       <button class="btn primary go" data-rv="docgo" ${open || edits ? '' : 'disabled'}>Değişikliğe başla</button>`;
   drawPend();
 }
 function drawPend() {
@@ -1366,7 +1372,7 @@ async function docAct(b, act) {
   if (act === 'docapprove') { try { S.rv.doc = await api('POST', `/api/review/docs/${d.id}/approve`); drawDoc(); loadReviewList(true).catch(() => {}); toast('Onaylandı'); } catch (e) {} return true; }
   if (act === 'docgo') {
     const open = d.comments.filter(c => c.state === 'acik').length;
-    if (!await dialog({title: 'Değişikliğe başlansın mı?', text: `${open} yorum${d.dirty ? ' ve doğrudan düzenleme' : ''} revizyon isteği olarak kaydedilecek. Claude bir sonraki oturumda (veya “bekleyen revizyonları yap” dediğinde) metni buna göre günceller.`, confirm: 'Değişikliğe başla'})) return true;
+    if (!await dialog({title: 'Değişikliğe başlansın mı?', text: `${open} yorum${d.changes.length ? ` ve ${d.changes.length} elle düzenleme (silinen/eklenen cümleler)` : ''} revizyon isteği olarak kaydedilecek. Claude bir sonraki oturumda (veya “bekleyen revizyonları yap” dediğinde) metni buna göre günceller.`, confirm: 'Değişikliğe başla'})) return true;
     try { const res = await api('POST', `/api/review/docs/${d.id}/revise`); S.rv.doc = res.doc; drawDoc(); loadReviewList(true).catch(() => {}); toast('Revizyon istendi'); await showPrompt(res.prompt, 'Revizyon istendi: şimdi Claude’a ver'); } catch (e) {}
     return true;
   }

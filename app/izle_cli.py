@@ -109,6 +109,10 @@ def main(argv: list[str] | None = None) -> int:
             if not args.cikti or out == doc["source_path"]:
                 texts.mark_synced(conn, args.id)
             print("yazıldı:", out)
+            edits = texts.user_edits(doc)
+            if edits:
+                print("Kullanıcının sitede yaptığı değişiklikler:")
+                print(chr(10).join(edits))
         else:
             prompts = review.pending_prompts(conn) + texts.pending_prompts(conn)
             print("\n\n".join(prompts) if prompts else "Bekleyen revizyon yok.")

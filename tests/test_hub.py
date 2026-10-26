@@ -220,3 +220,31 @@ def test_metin_aktar_klasorden_baslik_ve_alt_baslik(conn, tmp_path):
     (tmp_path / "p" / "arastirma" / "y.md").write_text("e", encoding="utf-8")
     items = izle_cli.collect_docs(str(tmp_path / "p"), exclude="Arastirma")
     assert sorted((t, c) for t, _, c in items) == [("metin 1", "v1"), ("not 1", ""), ("rapor", "v1/ses")]
+
+
+def test_elle_eklenen_ve_silinen_cumleler_istemde_ve_arayuzde(conn):
+    base = "Giriş cümlesi burada. Silinecek cümle bu.\nİkinci paragraf aynı kalır.\nÜçüncü paragraf."
+    did, _ = texts.add_doc(conn, "T", base, brand="K")
+    assert texts.get_doc(conn, did)["changes"] == []
+    texts.save_content(conn, did, "Giriş cümlesi burada. Yeni eklenen cümle.\nİkinci paragraf aynı kalır.\nÜçüncü paragraf.\nTamamen yeni satır.")
+    ch = texts.get_doc(conn, did)["changes"]
+    assert ch[0]["removed"] == ["Silinecek cümle bu."] and ch[0]["added"] == ["Yeni eklenen cümle."]  # cümle düzeyinde, paragraf değil
+    assert ch[1]["added"] == ["Tamamen yeni satır."] and ch[1]["removed"] == []
+    assert texts.list_docs(conn)[0]["edits"] == 2
+    prompt = texts.request_revision(conn, did)  # yorum olmadan, yalnız elle düzenleme ile de revizyon istenir
+    assert "− Silinecek cümle bu." in prompt and "+ Yeni eklenen cümle." in prompt and "+ Tamamen yeni satır." in prompt
+    assert "son karardır" in prompt
+    texts.mark_synced(conn, did)  # Claude metin-al ile güncel metni dosyaya aldı
+    texts.apply_update(conn, did, "Claude'un yeni sürümü.")  # taban yenilenir: eski düzenlemeler artık fark sayılmaz
+    d = texts.get_doc(conn, did)
+    assert d["changes"] == [] and texts.list_docs(conn)[0]["edits"] == 0
+
+
+def test_bos_satir_farki_duzenleme_sayilmaz_ve_geri_alinan_duzenleme_kalkar(conn):
+    did, _ = texts.add_doc(conn, "T", "A cümlesi.\nB cümlesi.")
+    texts.save_content(conn, did, "A cümlesi.\n\n\nB cümlesi.")  # yalnız boş satır
+    assert texts.get_doc(conn, did)["changes"] == []
+    texts.save_content(conn, did, "A cümlesi.\nB cümlesi değişti.")
+    assert len(texts.get_doc(conn, did)["changes"]) == 1
+    texts.save_content(conn, did, "A cümlesi.\nB cümlesi.")  # eski haline döndü
+    assert texts.get_doc(conn, did)["changes"] == []

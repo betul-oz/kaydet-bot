@@ -55,6 +55,10 @@ def _migrate(conn: sqlite3.Connection) -> None:
         # yalnızca metinlerin kullandığı eski başlıklar metin başlığı olur
         conn.execute("UPDATE rv_cats SET kind = 'm' WHERE id IN (SELECT cat_id FROM rv_docs WHERE cat_id IS NOT NULL) "
                      "AND id NOT IN (SELECT cat_id FROM rv_videos WHERE cat_id IS NOT NULL)")
+    dcols = {r["name"] for r in conn.execute("PRAGMA table_info(rv_docs)")}
+    if "base" not in dcols:
+        conn.execute("ALTER TABLE rv_docs ADD COLUMN base TEXT NOT NULL DEFAULT ''")
+        conn.execute("UPDATE rv_docs SET base = content")  # eski metinlerde fark bu andan itibaren izlenir
     cols = {r["name"] for r in conn.execute("PRAGMA table_info(rv_videos)")}
     for col, ddl in (("channel_id", "INTEGER"), ("cat_id", "INTEGER"), ("dismissed", "INTEGER NOT NULL DEFAULT 0")):
         if col not in cols:

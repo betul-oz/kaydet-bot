@@ -3,6 +3,8 @@ Yorumlar bitince "Değişikliğe başla" ile revizyon istenir; Claude `izle.py m
 """
 from __future__ import annotations
 
+import difflib
+import re
 import sqlite3
 
 from . import board, channels
@@ -17,6 +19,7 @@ CREATE TABLE IF NOT EXISTS rv_docs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     content TEXT NOT NULL DEFAULT '',
+    base TEXT NOT NULL DEFAULT '',
     source_path TEXT NOT NULL DEFAULT '',
     channel_id INTEGER,
     cat_id INTEGER,
@@ -87,8 +90,8 @@ def add_doc(conn: sqlite3.Connection, title: str, content: str, *, brand: str = 
         cat = channels.ensure_cat(conn, ch, category, "m") if category.strip() and ch else None
     except channels.ChannelError as e:
         raise TextError(str(e))
-    cur = conn.execute("INSERT INTO rv_docs (title, content, source_path, channel_id, cat_id) VALUES (?, ?, ?, ?, ?)",
-                       (title, _norm(content), source_path[:500], ch, cat))
+    cur = conn.execute("INSERT INTO rv_docs (title, content, base, source_path, channel_id, cat_id) VALUES (?, ?, ?, ?, ?, ?)",
+                       (title, _norm(content), _norm(content), source_path[:500], ch, cat))
     conn.commit()
     board.add_message(conn, "sistem", f"İncelemeye hazır metin: {title}")
     return cur.lastrowid, True
@@ -103,14 +106,16 @@ def _comments(conn: sqlite3.Connection, doc_id: int) -> list[dict]:
 def get_doc(conn: sqlite3.Connection, doc_id: int) -> dict:
     d = dict(_doc(conn, doc_id))
     d["comments"] = _comments(conn, doc_id)
+    d["changes"] = changes(d.get("base", ""), d["content"])
     return d
 
 
 def list_docs(conn: sqlite3.Connection) -> list[dict]:
     out = []
-    for r in conn.execute("SELECT id, title, source_path, channel_id, cat_id, status, dirty, dismissed, created_at, updated_at "
+    for r in conn.execute("SELECT id, title, source_path, channel_id, cat_id, status, dirty, dismissed, created_at, updated_at, base, content "
                           "FROM rv_docs ORDER BY updated_at DESC, id DESC"):
         d = dict(r)
+        d["edits"] = len(changes(d.pop("base"), d.pop("content")))
         d["open_comments"] = conn.execute("SELECT COUNT(*) FROM rv_comments WHERE doc_id = ? AND state = 'acik'", (r["id"],)).fetchone()[0]
         out.append(d)
     return out
@@ -198,6 +203,51 @@ def delete_comment(conn: sqlite3.Connection, comment_id: int) -> None:
     conn.commit()
 
 
+_SENT = re.compile(r"(?<=[.!?…])\s+")
+
+
+def _units(lines: list[str]) -> list[str]:
+    out: list[str] = []
+    for line in lines:
+        if line.strip():
+            out += [s.strip() for s in _SENT.split(line) if s.strip()]
+    return out
+
+
+def changes(base: str | None, cur: str) -> list[dict]:
+    """Claude'un son yüklediği metne (base) göre kullanıcının elle yaptığı değişiklikler, cümle düzeyinde:
+    [{line, removed: [...], added: [...], before}]. Yalnızca boş satır/biçim farkı olanlar sayılmaz."""
+    if not base or base == cur:
+        return []
+    a, b = base.split("\n"), cur.split("\n")
+    out: list[dict] = []
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
+        if tag == "equal":
+            continue
+        old, new = _units(a[i1:i2]), _units(b[j1:j2])
+        removed: list[str] = []
+        added: list[str] = []
+        for t2, x1, x2, y1, y2 in difflib.SequenceMatcher(None, old, new, autojunk=False).get_opcodes():
+            if t2 in ("replace", "delete"):
+                removed += old[x1:x2]
+            if t2 in ("replace", "insert"):
+                added += new[y1:y2]
+        if removed or added:
+            before = next((x for x in reversed(a[max(0, i1 - 3):i1]) if x.strip()), "")
+            out.append({"line": j1 + 1, "removed": removed, "added": added, "before": before[:100]})
+    return out[:100]
+
+
+def user_edits(d: dict | sqlite3.Row) -> list[str]:
+    """İstem ve CLI için düz metin satırları (− silinen, + eklenen cümle)."""
+    out: list[str] = []
+    for h in changes(d["base"], d["content"]):
+        out.append(f"[satır {h['line']}]" + (f" (öncesinde: “{h['before']}”)" if h["before"] else ""))
+        out += [f"− {x}" for x in h["removed"]]
+        out += [f"+ {x}" for x in h["added"]]
+    return out
+
+
 def revision_prompt(conn: sqlite3.Connection, doc_id: int) -> str:
     d = get_doc(conn, doc_id)
     ch = conn.execute("SELECT name FROM rv_channels WHERE id = ?", (d["channel_id"],)).fetchone() if d["channel_id"] else None
@@ -208,6 +258,11 @@ def revision_prompt(conn: sqlite3.Connection, doc_id: int) -> str:
         lines.append(f"Kaynak dosya: {d['source_path']}")
     if d["dirty"]:
         lines.append(f"Kullanıcı metni arayüzde doğrudan düzenlemiş. Önce güncel metni dosyaya al: {IZLE_CMD} metin-al {d['id']}")
+    edits = user_edits(d)
+    if edits:
+        lines.append("")
+        lines.append("Kullanıcının metinde elle yaptığı değişiklikler (− silinen, + eklenen cümle). Bunlar son karardır: olduğu gibi koru, yorumları bunların üstüne uygula:")
+        lines += edits
     open_ = [c for c in d["comments"] if c["state"] == "acik"]
     if open_:
         lines.append("")
@@ -224,14 +279,15 @@ def request_revision(conn: sqlite3.Connection, doc_id: int) -> str:
     if d["status"] == "revizyon":
         raise TextError("Revizyon zaten istendi", 409)
     n = conn.execute("SELECT COUNT(*) FROM rv_comments WHERE doc_id = ? AND state = 'acik'", (doc_id,)).fetchone()[0]
-    if not n and not d["dirty"]:
+    m = len(changes(d["base"], d["content"]))
+    if not n and not m and not d["dirty"]:
         raise TextError("Önce en az bir yorum ekle (ya da metni düzenle)")
     if conn.execute("UPDATE rv_docs SET status = 'revizyon' WHERE id = ? AND status != 'revizyon'", (doc_id,)).rowcount == 0:
         raise TextError("Revizyon zaten istendi", 409)
     prompt = revision_prompt(conn, doc_id)
     ch = conn.execute("SELECT name FROM rv_channels WHERE id = ?", (d["channel_id"],)).fetchone() if d["channel_id"] else None
     brand = ch["name"] if ch else ""
-    note = f"{n} yorum" + (" + doğrudan düzenleme" if d["dirty"] else "")
+    note = f"{n} yorum" + (f" + {m} elle düzenleme" if m else "")
     if d["task_id"] and conn.execute("SELECT 1 FROM tasks WHERE id = ?", (d["task_id"],)).fetchone():
         board.update_task(conn, d["task_id"], status="uretimde", note=note, actor="sen")
         task_id = d["task_id"]
@@ -258,8 +314,8 @@ def apply_update(conn: sqlite3.Connection, doc_id: int, content: str, note: str 
     content = _norm(content)
     if content != d["content"]:
         _backup(conn, doc_id, d["content"])
-    conn.execute("UPDATE rv_docs SET content = ?, dirty = 0, status = 'inceleme', updated_at = strftime('%Y-%m-%d %H:%M:%f', 'now') WHERE id = ?",
-                 (content, doc_id))
+    conn.execute("UPDATE rv_docs SET content = ?, base = ?, dirty = 0, status = 'inceleme', updated_at = strftime('%Y-%m-%d %H:%M:%f', 'now') WHERE id = ?",
+                 (content, content, doc_id))
     conn.execute("UPDATE rv_comments SET state = 'uygulandi', claude_note = ?, updated_at = datetime('now') "
                  "WHERE doc_id = ? AND state = 'acik'", (note.strip()[:2000], doc_id))
     conn.commit()
