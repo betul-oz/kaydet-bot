@@ -1,5 +1,10 @@
 # ILERLEME
 
+## 2026-10-26 - Oturum 5 (devam): Analiz sayfası yenilemesi (İş 22)
+- Yapıldı: marka yönetimi (çok hesap), içerik planı + tahmini bitiş, hesap sayfası (ne yapmalısın, tutan/zayıf videolar, içgörüler: süre/gün/saat/başlık/hashtag/konu, etkileşim), öneri motoru, video içi analiz (hook/orta/ritim/ses brief, enerji grafiği, kendi videolarımızın inceleme sayfasında da). KARARLAR #51-54. Test: 173 geçti. Gerçek YouTube videosu indirilip analiz edildi (8 sn).
+- Denetçi (Opus) çalıştırıldı; bulguları düzeltilecek. Yayına (Dokploy) henüz alınmadı: imaj derlenince Redeploy.
+- Sıradaki: Whisper ile konuşma metni + hook cümlesi sınıflandırma; yüz/ekran yazısı; yeni outlier Telegram uyarısı; zamanlanmış otomatik çekim; panel/CSV içe aktarma ile gerçek tutma eğrisi.
+
 ## 2026-10-25 - Oturum 5 (devam): Analiz iyileştirmeleri (açık kaynak araştırması)
 - Yapıldı: 3 araştırmacı ajan açık kaynak repoları taradı. Bizde olmayanlardan uygulananlar (KARARLAR #50): biçime ve yaşa göre düzeltilmiş güç skoru, sağlam z, VSR, şüpheli trafik, saatlik izlenme/ivme, hesap içgörüleri (gün/saat/süre/başlık özelliği/hashtag/trend). Test: 155 geçti; tarayıcıda izole veriyle görüldü.
 - Sıradaki (araştırma raporundan): (1) video içi analiz iş 15: ffmpeg ebur128/silencedetect, PySceneDetect, OpenCV, faster-whisper (MIT), MediaPipe yüz, OCR; (2) hook etiketleri + deney takibi; (3) yeni outlier Telegram uyarısı; (4) zamanlanmış otomatik çekim (hız hesabı için en az iki çekim gerekir); (5) IG/TikTok profil listesi için instaloader / TikTok-Api (MIT, kırılgan).

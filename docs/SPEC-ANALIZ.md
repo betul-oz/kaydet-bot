@@ -30,3 +30,10 @@ Not: Meta Ads MCP yalnızca reklamlanabilir medya listeler, organik içgörü (e
 
 ## Sonraki işler
 Bkz. `IS-LISTESI.json` (iş 12-18): panolar/karşılaştırma, içe aktarma, resmi API bağlayıcıları, video içi analiz, hook puanlama, öneri motoru, zamanlanmış otomatik çekim.
+
+
+## Güncelleme (2026-10-26): yeni sayfa yapısı
+- **Marka** önce oluşturulur; bir markaya istediğin kadar hesap eklenir (YouTube/TikTok/Instagram). Marka sayfası: içerik planı (ilerleme, tahmini bitiş, gecikme riski, sıradaki işler, toplu plan ekleme), hesap karşılaştırma, öncelikli yapılacaklar.
+- **Hesap sayfası:** KPI'lar, "Ne yapmalısın?" önerileri, en çok tutan / en zayıf videolar, "Hangi tür içerik tutuyor?" (süre, gün, saat dilimi, biçim, konu kelimesi, başlık özelliği, hashtag; güç + etkileşim), tüm videolar.
+- **Video sayfası:** video içi analiz (ffmpeg): hook/orta/ritim/ses/bitiş brief'i ve enerji grafiği; "Claude'a ver" ile derin yorum istemi.
+- Kaynaklar: bkz. KARARLAR #50-54 (açık kaynak araştırması: bangermap-mcp, youtube-niche-finder, yuben-app, Trend-Lens fikirleri; kod kopyalanmadı).

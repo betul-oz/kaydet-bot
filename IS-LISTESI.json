@@ -126,6 +126,12 @@
       "ad": "Kanal > baslik > alt baslik agaci, X ile temizleme, metin inceleme (yt yazi-arayuzu tasindi), yayin (sifre/token/yukleme, Dockerfile, Dokploy rehberi)",
       "durum": "bitti",
       "model": "Opus 5.5"
+    },
+    {
+      "id": 22,
+      "ad": "Analiz sayfasi yenilemesi: marka yonetimi (cok hesap), icerik plani ve tahmini bitis, hesap sayfasi (ne yapmalisin, tutan tur, etkilesim), oneri motoru, video ici analiz (hook/orta/ritim/ses brief)",
+      "durum": "bitti",
+      "model": "Opus 5.5"
     }
   ]
 }
