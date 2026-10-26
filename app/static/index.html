@@ -280,6 +280,24 @@ mark{background:#FFE58A;color:#241d00;border-radius:3px;padding:0 1px}mark.done{
 dialog:has(.pdlg){width:min(720px,94vw);max-width:94vw;overflow-x:hidden}.pdlg{width:100%}.pdlg textarea{box-sizing:border-box;white-space:pre-wrap;overflow-wrap:anywhere}.pdlg .psteps{margin:6px 0 10px;padding-left:20px;color:var(--muted);font-size:14px}
 .pdlg textarea{width:100%;font:13px/1.5 ui-monospace,Consolas,monospace;resize:vertical}
 .pdlg .actions{margin-top:10px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.pdlg .actions #pshort{margin-right:auto}
+
+/* ---- Analiz: marka / hesap / plan ---- */
+.grow{flex:1}.ext{color:var(--muted);text-decoration:none;margin-left:2px}
+.vchip{display:inline-flex;align-items:center;border-radius:999px;padding:1px 10px;font-size:12px;font-weight:600;background:var(--lane);color:var(--muted)}
+.vchip.ok{background:#DDF3E8;color:var(--ok)}.vchip.bad{background:#FBE3E6;color:var(--danger)}.vchip.warn{background:#FFF1D6;color:var(--warn)}
+@media (prefers-color-scheme: dark){.vchip.ok{background:#173326}.vchip.bad{background:#3A1A20}.vchip.warn{background:#3A2C10}}
+.brandgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.brandcard{display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;color:var(--ink);text-decoration:none}
+.brandcard:hover{border-color:var(--accent)}.bch{display:flex;gap:8px;align-items:center;justify-content:space-between}.bch b{font:600 18px var(--head)}.brec{color:var(--muted);line-height:1.35}
+.pbar{height:10px;background:var(--lane);border-radius:999px;overflow:hidden;margin:10px 0}.pbar.sm{height:6px;margin:4px 0}.pbar i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.planbox{margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}.planbox .ihead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.planbox h2{font-size:19px}
+.pstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:6px 0}.pstats div{display:flex;flex-direction:column}.pstats b{font:600 18px var(--head)}.pstats span{color:var(--muted);font-size:12px}
+.pnote{margin:8px 0;line-height:1.5}.pitems{list-style:none;margin:6px 0;padding:0;display:flex;flex-direction:column;gap:4px}.pitems li{font-size:14px}.pitems li.od b{color:var(--danger)}
+.bulk summary{cursor:pointer;color:var(--accent);margin-top:6px}.bulk textarea{width:100%;margin:8px 0}.bulk .row{display:flex;gap:8px;flex-wrap:wrap}
+.recs{display:flex;flex-direction:column;gap:8px}.rec{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-left-width:4px;border-radius:10px;padding:8px 12px;background:var(--surface)}
+.rec.yap{border-left-color:var(--ok)}.rec.birak{border-left-color:var(--danger)}.rec.uyari{border-left-color:var(--warn)}.rec.dene{border-left-color:var(--accent)}.rec.bilgi{border-left-color:var(--line)}
+.rec .ric{font-size:18px;line-height:1.3}.rlb{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.hl{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.hl h4{margin:0 0 6px;font:600 14px var(--head)}.hl ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
 </style>
 </head>
 <body>
@@ -345,7 +363,13 @@ async function load(force) {
 /* ---------- Yönlendirme: #/k/<kategori> | #/planlar ---------- */
 function route() {
   let h = ''; try { h = decodeURIComponent(location.hash || ''); } catch (e) {}
-  if (h === '#/analiz' || h.startsWith('#/analiz/')) return {view: 'analytics', brand: h.slice(9).replace(/^\//, '')};
+  if (h === '#/analiz' || h.startsWith('#/analiz/')) {
+    const rest = h.slice(9).replace(/^\//, ''); let am;
+    if ((am = rest.match(/^b\/(\d+)$/))) return {view: 'analytics', brandId: +am[1]};
+    if ((am = rest.match(/^h\/(\d+)$/))) return {view: 'analytics', account: +am[1]};
+    if ((am = rest.match(/^v\/(\d+)$/))) return {view: 'analytics', post: +am[1]};
+    return {view: 'analytics', brand: rest};
+  }
   if (h === '#/izle' || h === '#/metin') return {view: 'reviews', sec: h.slice(2)};
   const km = h.match(/^#\/(izle|metin)\/k\/(\d+)(?:\/(\d+))?$/); if (km) return {view: 'channel', sec: km[1], ch: +km[2], cat: +(km[3] || 0)};
   const mm = h.match(/^#\/(?:izle|metin)\/m\/(\d+)$/); if (mm) return {view: 'doc', sec: 'metin', id: +mm[1]};
@@ -403,8 +427,11 @@ function renderNav(r) {
     const bd = S.board && S.board.tasks.filter(t => t.status !== 'yuklendi').length;
     $('#catnav').innerHTML = `<a class="navlink" href="#/pano" ${r.view === 'board' ? 'aria-current="page"' : ''}>İş panosu<span class="n">${bd || ''}</span></a>` +
       `<a class="navlink" href="#/kanallar" ${r.view === 'channels' ? 'aria-current="page"' : ''}>Kanal tabloları</a><div class="sep"></div>` +
-      `<a class="navlink" href="#/analiz" ${r.view === 'analytics' && !r.brand ? 'aria-current="page"' : ''}>Tüm markalar<span class="n">${bs.length}</span></a>` +
-      bs.map(b => `<a class="navlink" href="#/analiz/${encodeURIComponent(b.brand)}" ${r.view === 'analytics' && r.brand === b.brand ? 'aria-current="page"' : ''}>${esc(b.brand)}<span class="n">${b.accounts.length}</span></a>`).join('');
+      `<a class="navlink" href="#/analiz" ${r.view === 'analytics' && !r.brand && !r.brandId && !r.account && !r.post ? 'aria-current="page"' : ''}>Tüm markalar<span class="n">${bs.length}</span></a>` +
+      bs.map(b => { const curB = r.view === 'analytics' && (r.brandId === b.id || (r.account && b.accounts.some(x => x.id === r.account)) || (r.post && b.accounts.some(x => x.posts.some(y => y.id === r.post))));
+        const col = {zamaninda: 'var(--ok)', bitti: 'var(--ok)', gecikme: 'var(--danger)', 'gecikmis-var': 'var(--warn)'}[b.plan && b.plan.verdict] || 'var(--line)';
+        return `<a class="navlink" href="#/analiz/b/${b.id}" ${curB ? 'aria-current="page"' : ''}><span class="dot" style="background:${col}" title="Plan durumu"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(b.brand)}</span><span class="n">${b.accounts.length}</span></a>`; }).join('') +
+      `<button class="btn ghost sm" data-an="brandadd" style="margin:6px 6px 0">+ Marka</button>`;
     return;
   }
   $('#catnav').innerHTML = S.cats.map(c => `<a class="navlink" href="#/k/${encodeURIComponent(c.name)}" ${r.view === 'cat' && r.cat === c ? 'aria-current="page"' : ''}>
@@ -515,56 +542,206 @@ function render() {
 const PLAT = {youtube: 'YouTube', tiktok: 'TikTok', instagram: 'Instagram'};
 const fmt = (n) => n == null ? '–' : n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + ' Mn' : n >= 1e4 ? Math.round(n / 1e3) + ' B' : n >= 1e3 ? (n / 1e3).toFixed(1).replace(/\.0$/, '') + ' B' : String(n);
 const fday = (d) => (d || '').slice(0, 10) || '–';
+const fdate = (iso) => iso ? new Date(iso.slice(0, 10) + 'T00:00:00').toLocaleDateString('tr-TR', {day: 'numeric', month: 'long'}) : '–';
+const xs = (v) => v == null ? '–' : v + '×';
+const pc = (v) => v == null ? '–' : '%' + v;
 async function loadAnalytics() { S.an = await api('GET', '/api/analytics'); render(); }
+const VERDICT = {zamaninda: ['Zamanında', 'ok'], gecikme: ['Gecikme riski', 'bad'], 'gecikmis-var': ['Gecikmiş iş var', 'warn'], 'hiz-yok': ['Hız verisi yok', 'muted'], bitti: ['Bitti', 'ok'], 'plan-yok': ['Plan yok', 'muted']};
+const verdictChip = (p) => { const [l, c] = VERDICT[p.verdict] || ['', 'muted']; return `<span class="vchip ${c}">${l}</span>`; };
+const LEVEL = {yap: ['✅', 'Yap'], birak: ['⛔', 'Bırak'], dene: ['🧪', 'Dene'], uyari: ['⚠️', 'Dikkat'], bilgi: ['ℹ️', 'Bilgi']};
+const allAccounts = () => (S.an?.brands || []).flatMap(b => b.accounts);
+const findBrand = (id) => (S.an?.brands || []).find(b => b.id === id);
+const findAcc = (id) => allAccounts().find(a => a.id === id);
+const accLabel = (a) => `${PLAT[a.platform]} @${a.handle}`;
+
 function postsTable(a) {
   const rows = [...a.posts].sort((x, y) => (y.outlier || 0) - (x.outlier || 0)).map(p => {
     const o = p.outlier, cls = o >= 2 ? 'hot' : o != null && o < 0.7 ? 'cold' : '';
-    return `<tr><td><a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer">${esc((p.title || p.url).slice(0, 90))}</a></td>
+    return `<tr><td><a href="#/analiz/v/${p.id}" title="Video analizi">${esc((p.title || p.url).slice(0, 90))}</a> <a class="ext" href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer" aria-label="Platformda aç" title="Platformda aç">↗</a></td>
       <td>${fday(p.posted_at)}</td><td class="num">${p.duration != null ? p.duration + ' sn' : '–'}</td>
       <td class="num">${fmt(p.views)}</td><td class="num">${fmt(p.likes)}</td><td class="num">${fmt(p.comments)}</td>
-      <td class="num">${p.engagement != null ? '%' + p.engagement : '–'}</td>
+      <td class="num">${pc(p.engagement)}</td>
       <td class="num">${o != null ? `<span class="x ${cls}" title="${esc(`Taban: ${p.base_scope === 'biçim' ? 'aynı biçim' : 'tüm hesap'} (${p.base_n} video) · z ${p.z ?? '–'} · izlenme/abone ${p.vsr ?? '–'} · yaş ${p.age_days ?? '–'} gün`)}">${o}×</span>${p.hot ? ' 🔥' : ''}${p.suspicious ? ' <span title="Beğeni/1000 izlenme çok düşük: reklam ya da şüpheli trafik olabilir">⚠</span>' : ''}${!p.reliable ? ' <span class="stat" title="Taban 10 videodan az">az veri</span>' : ''}` : '–'}</td>
       <td class="num">${p.vph != null ? fmt(Math.round(p.vph)) + '/sa' : '–'}</td></tr>`;
   }).join('');
-  return `<div class="scrollx"><table class="tbl"><thead><tr><th>Video (en güçlüden)</th><th>Tarih</th><th class="num">Süre</th><th class="num">İzlenme</th><th class="num">Beğeni</th><th class="num">Yorum</th><th class="num">Etkileşim</th><th class="num" title="İzlenme ÷ aynı hesap ve aynı biçimdeki (Short/uzun) diğer olgun videoların medyanı">Güç</th><th class="num" title="Son iki ölçüm arasındaki saatlik izlenme">Hız</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `<div class="scrollx"><table class="tbl"><thead><tr><th>Video (en güçlüden)</th><th>Tarih</th><th class="num">Süre</th><th class="num">İzlenme</th><th class="num">Beğeni</th><th class="num">Yorum</th><th class="num">Etkileşim</th><th class="num" title="İzlenme ÷ aynı hesap ve aynı biçimdeki diğer olgun videoların medyanı">Güç</th><th class="num" title="Son iki ölçüm arasındaki saatlik izlenme">Hız</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
-const xs = (v) => v == null ? '–' : v + '×';
+
+function recsBlock(recs, who) {
+  if (!recs || !recs.length) return '<p class="empty">Öneri çıkarmak için yeterli veri yok. Hesabın videolarını çek.</p>';
+  return `<div class="recs">${recs.map(r => { const [ic, lb] = LEVEL[r.level] || ['', '']; return `<div class="rec ${esc(r.level)}"><span class="ric" aria-hidden="true">${ic}</span><div><b class="rlb">${lb}</b>${who ? ` <small class="stat">${esc(who)}</small>` : ''}<div>${esc(r.text)}</div><small class="stat">${esc(r.why)}</small></div></div>`; }).join('')}</div>`;
+}
+
+function highlightsBlock(h) {
+  if (!h || (!h.top.length && !h.weak.length)) return '';
+  const li = (v) => `<li><a href="#/analiz/v/${v.id}">${esc((v.title || '').slice(0, 70))}</a> <span class="stat">${xs(v.power)} · ${fmt(v.views)} izlenme${v.engagement != null ? ' · ' + pc(v.engagement) : ''}</span></li>`;
+  return `<div class="hl"><div><h4>🔥 En çok tutanlar</h4><ul>${h.top.map(li).join('')}</ul></div><div><h4>🧊 En zayıf kalanlar <small class="stat">olgun videolar</small></h4><ul>${h.weak.map(li).join('')}</ul></div></div>`;
+}
+
 function insightsBlock(a) {
   const I = a.insights; if (!I || !I.n_scored) return '';
-  const cell = (label, g) => `<div class="icell ${g.few ? 'few' : ''}" title="${g.n} video${g.few ? ' (az veri)' : ''}"><b>${esc(label)}</b><span>${xs(g.median)}</span><small>${g.n}</small></div>`;
+  const cell = (label, g) => `<div class="icell ${g.few ? 'few' : ''}" title="${g.n} video${g.few ? ' (az veri)' : ''}${g.eng != null ? ' · etkileşim %' + g.eng : ''}"><b>${esc(label)}</b><span>${xs(g.median)}</span><small>${g.n} video${g.eng != null ? ' · %' + g.eng : ''}</small></div>`;
   const best = (list) => { const ok = list.filter(g => !g.few && g.median != null); return ok.length ? ok.reduce((m, g) => g.median > m.median ? g : m) : null; };
-  const bd = best(I.weekday), bh = best(I.hour);
-  const trend = I.trend ? `<span class="rvst ${I.trend.label === 'büyüyor' ? 'onaylandi' : I.trend.label === 'soğuyor' ? 'revizyon' : ''}" title="Son 30 gün medyan güç ${I.trend.recent}× (${I.trend.recent_n} video), önceki 90 gün ${I.trend.before}× (${I.trend.before_n} video)">Trend: ${I.trend.label}</span>` : '';
-  const feats = I.features.filter(f => f.lift != null).map(f => `<tr><td>${esc(f.feature)}</td><td class="num">${f.n_yes} / ${f.n_no}</td><td class="num">${xs(f.med_yes)} / ${xs(f.med_no)}</td><td class="num">${f.few ? '<span class="stat">az veri</span>' : `<span class="x ${f.lift >= 1.25 ? 'hot' : f.lift <= 0.8 ? 'cold' : ''}">${f.lift}×</span>`}</td></tr>`).join('');
-  return `<div class="insights"><div class="ihead"><b>İçgörüler</b>${trend}
-      <span class="stat">Değerler “güç” medyanı (1× = hesabın tipik videosu). Küçük örnekte kanıt değil, ipucu.</span></div>
+  const bd = best(I.weekday), bh = best(I.hour), bu = best(I.duration);
+  const trend = I.trend ? `<span class="vchip ${I.trend.label === 'büyüyor' ? 'ok' : I.trend.label === 'soğuyor' ? 'bad' : 'muted'}" title="Son 30 gün medyan güç ${I.trend.recent}× (${I.trend.recent_n} video), önceki 90 gün ${I.trend.before}× (${I.trend.before_n} video)">Trend: ${I.trend.label}</span>` : '';
+  const feats = I.features.filter(f => f.lift != null).map(f => `<tr><td>${esc(f.feature)}</td><td class="num">${f.n_yes} / ${f.n_no}</td><td class="num">${xs(f.med_yes)} / ${xs(f.med_no)}</td><td class="num">${f.eng_yes != null ? pc(f.eng_yes) + ' / ' + pc(f.eng_no) : '–'}</td><td class="num">${f.few ? '<span class="stat">az veri</span>' : `<span class="x ${f.lift >= 1.25 ? 'hot' : f.lift <= 0.8 ? 'cold' : ''}">${f.lift}×</span>`}</td></tr>`).join('');
+  const kws = (I.keywords || []).map(k => `<div class="icell"><b>${esc(k.word)}</b><span>${xs(k.median)}</span><small>${k.n} video${k.eng != null ? ' · %' + k.eng : ''}</small></div>`).join('');
+  return `<div class="insights"><div class="ihead"><b>Hangi tür içerik tutuyor?</b>${trend}
+      <span class="stat">Değerler “güç” medyanı (1× = hesabın tipik videosu); altında video sayısı ve medyan etkileşim. Küçük örnekte kanıt değil, ipucu.</span></div>
+    ${I.duration.length ? `<div class="igrp"><h4>Süre ${bu ? `<small>en iyi: ${esc(bu.bucket)}</small>` : ''}</h4><div class="icells">${I.duration.map(g => cell(g.bucket, g)).join('')}</div></div>` : ''}
     <div class="igrp"><h4>Haftanın günü ${bd ? `<small>en iyi: ${esc(bd.day)}</small>` : ''}</h4><div class="icells">${I.weekday.map(g => cell(g.day, g)).join('')}</div></div>
     ${I.hour.length ? `<div class="igrp"><h4>Saat dilimi ${bh ? `<small>en iyi: ${esc(bh.slot)}</small>` : ''}</h4><div class="icells">${I.hour.map(g => cell(g.slot, g)).join('')}</div></div>` : ''}
-    ${I.duration.length ? `<div class="igrp"><h4>Süre</h4><div class="icells">${I.duration.map(g => cell(g.bucket, g)).join('')}</div></div>` : ''}
-    ${feats ? `<div class="igrp wide"><h4>Başlık özelliği etkisi <small>var / yok</small></h4><div class="scrollx"><table class="tbl"><thead><tr><th>Özellik</th><th class="num">Video</th><th class="num">Medyan güç</th><th class="num">Etki</th></tr></thead><tbody>${feats}</tbody></table></div></div>` : ''}
-    ${I.hashtags.length ? `<div class="igrp wide"><h4>Hashtag</h4><div class="icells">${I.hashtags.map(h => `<div class="icell"><b>${esc(h.tag)}</b><span>${xs(h.median)}</span><small>${h.n}</small></div>`).join('')}</div></div>` : ''}</div>`;
+    ${Object.keys(I.formats).length ? `<div class="igrp"><h4>Biçim</h4><div class="icells">${Object.entries(I.formats).map(([k, v]) => `<div class="icell"><b>${k === 'short' ? 'Short' : 'Uzun'}</b><span>${fmt(v.median_views)}</span><small>${v.n} video · medyan izlenme</small></div>`).join('')}</div></div>` : ''}
+    ${kws ? `<div class="igrp wide"><h4>Konu (başlıktaki anahtar kelime)</h4><div class="icells">${kws}</div></div>` : ''}
+    ${feats ? `<div class="igrp wide"><h4>Başlık özelliği etkisi <small>var / yok</small></h4><div class="scrollx"><table class="tbl"><thead><tr><th>Özellik</th><th class="num">Video</th><th class="num">Medyan güç</th><th class="num">Etkileşim</th><th class="num">Etki</th></tr></thead><tbody>${feats}</tbody></table></div></div>` : ''}
+    ${I.hashtags.length ? `<div class="igrp wide"><h4>Hashtag</h4><div class="icells">${I.hashtags.map(h => `<div class="icell"><b>${esc(h.tag)}</b><span>${xs(h.median)}</span><small>${h.n} video${h.eng != null ? ' · %' + h.eng : ''}</small></div>`).join('')}</div></div>` : ''}</div>`;
 }
+
+function planBlock(b) {
+  const p = b.plan; if (!p) return '';
+  const pct = p.progress == null ? 0 : Math.round(p.progress * 100);
+  let note = '';
+  if (p.verdict === 'plan-yok') note = 'Bu marka için henüz planlanmış içerik yok. Aşağıdan toplu ekleyebilirsin.';
+  else if (p.verdict === 'bitti') note = 'Planlanan tüm içerikler yüklendi.';
+  else if (p.verdict === 'hiz-yok') note = `Henüz yüklenen iş olmadığı için bitiş tahmini yapılamıyor.${p.due_last ? ` Planlanan son tarih ${fdate(p.due_last)}.` : ''}`;
+  else {
+    note = `Son ${p.pace_window_days} günde haftada ${String(p.pace_per_week).replace('.', ',')} içerik yüklenmiş; kalan ${p.remaining} içerik bu hızla <b>${fdate(p.forecast)}</b> tarihinde biter.`;
+    if (p.verdict === 'gecikme') note += ` Planlanan son tarihten (${fdate(p.due_last)}) yaklaşık <b>${p.late_days} gün sonra</b>: hızı artır ya da planı kısalt.`;
+    else if (p.verdict === 'gecikmis-var') note += ` ${p.overdue} iş tarihini geçmiş.`;
+  }
+  const items = p.upcoming.map(t => `<li class="${t.overdue ? 'od' : ''}"><span class="rvst ${t.status === 'sorun' ? 'revizyon' : ''}">${esc(BST[t.status] || t.status)}</span> <b>${esc(t.title)}</b> <span class="stat">${esc([t.platform && PLAT[t.platform], t.due && 'son ' + fdate(t.due)].filter(Boolean).join(' · '))}${t.overdue ? ' · gecikmiş' : ''}</span></li>`).join('');
+  return `<section class="planbox"><div class="ihead"><h2>İçerik planı</h2>${verdictChip(p)}<span class="stat">Bilgiler iş panosundaki işlerden gelir.</span><span class="grow"></span><a class="btn sm" href="#/pano">İş panosu</a></div>
+    ${p.total ? `<div class="pbar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>
+    <div class="pstats"><div><b>${p.done} / ${p.total}</b><span>yüklendi (%${pct})</span></div><div><b>${p.remaining}</b><span>kalan${p.stuck ? ` · ${p.stuck} sorunlu` : ''}</span></div>
+      <div><b>${fdate(p.due_next)}</b><span>sıradaki tarih</span></div><div><b>${fdate(p.due_last)}</b><span>planlanan son tarih</span></div><div><b>${p.forecast ? fdate(p.forecast) : '–'}</b><span>tahmini bitiş</span></div></div>` : ''}
+    <p class="pnote">${note}</p>${items ? `<ul class="pitems">${items}</ul>` : ''}
+    <details class="bulk"><summary>+ Toplu plan ekle</summary><form data-an="planform" data-brand="${b.id}"><label class="sr" for="plantext${b.id}">Planlanan içerikler</label>
+      <textarea class="field" id="plantext${b.id}" rows="5" placeholder="Her satıra bir içerik: Başlık | son tarih (2026-11-03) | platform (youtube, tiktok, instagram)&#10;Örn: Maç arası altyazı denemesi | 2026-11-05 | youtube"></textarea>
+      <div class="row"><select class="field" aria-label="Varsayılan platform"><option value="">Platform (satırda yoksa)</option>${Object.entries(PLAT).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select><button class="btn primary" type="submit">Plana ekle</button></div></form></details></section>`;
+}
+
 function accountRow(a) {
   const st = a.sync_status === 'calisiyor' ? 'çekiliyor…' : a.sync_status === 'tamam' ? 'güncel: ' + fday(a.synced_at) : a.sync_status === 'hata' ? '' : 'henüz çekilmedi';
-  return `<div class="acc" data-acc="${a.id}"><div class="acchead"><span class="plat">${PLAT[a.platform]}</span><span>@${esc(a.handle)}</span>
+  return `<div class="acc" data-acc="${a.id}"><div class="acchead"><span class="plat">${PLAT[a.platform]}</span><a href="#/analiz/h/${a.id}"><b>@${esc(a.handle)}</b></a>
       <span class="stat">${a.followers != null ? fmt(a.followers) + ' takipçi · ' : ''}${a.post_count} video${a.median_views != null ? ' · medyan ' + fmt(a.median_views) : ''} · ${st}</span><span class="grow"></span>
+      <a class="btn sm primary" href="#/analiz/h/${a.id}">Analiz sayfası</a>
       ${a.platform === 'youtube' ? `<button class="btn sm" data-act="ansync" ${a.sync_status === 'calisiyor' ? 'disabled' : ''}>Verileri çek</button>` : ''}
       <button class="btn sm" data-act="anpost">Video linki ekle</button>
       <button class="btn sm ghost danger" data-act="andel" aria-label="Hesabı kaldır">✕</button></div>
-    ${a.sync_error ? `<div class="err">${esc(a.sync_error)}</div>` : ''}${a.post_count ? `<details data-accopen="${a.id}" ${S.anOpen.has(a.id) ? 'open' : ''}><summary class="stat" style="cursor:pointer;margin-top:6px">Videoları ve içgörüleri göster</summary>${insightsBlock(a)}${postsTable(a)}</details>` : ''}</div>`;
+    ${a.sync_error ? `<div class="err">${esc(a.sync_error)}</div>` : ''}</div>`;
 }
+
+const topRec = (a) => (a.recs || []).find(r => r.level === 'yap' || r.level === 'uyari');
+function accountCompare(b) {
+  if (!b.accounts.length) return '<p class="empty">Bu markada henüz hesap yok. “+ Hesap ekle” ile ekle; bir markaya istediğin kadar hesap ekleyebilirsin.</p>';
+  const rows = [...b.accounts].sort((x, y) => (y.median_views || 0) - (x.median_views || 0)).map(a => {
+    const tr = a.insights?.trend;
+    return `<tr><td><a href="#/analiz/h/${a.id}"><b>${esc(accLabel(a))}</b></a></td><td class="num">${fmt(a.followers)}</td><td class="num">${a.post_count}</td><td class="num">${fmt(a.median_views)}</td><td class="num">${pc(a.median_engagement)}</td>
+      <td>${tr ? `<span class="vchip ${tr.label === 'büyüyor' ? 'ok' : tr.label === 'soğuyor' ? 'bad' : 'muted'}">${tr.label}</span>` : '–'}</td>
+      <td>${topRec(a) ? esc(topRec(a).text.slice(0, 90)) : '<span class="stat">veri az</span>'}</td></tr>`;
+  }).join('');
+  return `<div class="scrollx"><table class="tbl"><thead><tr><th>Hesap</th><th class="num">Takipçi</th><th class="num">Video</th><th class="num">Medyan izlenme</th><th class="num">Etkileşim</th><th>Trend</th><th>Ana öneri</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function renderBrand(b) {
+  const accRecs = b.accounts.flatMap(a => (a.recs || []).filter(r => r.prio <= 2 && r.level !== 'bilgi').slice(0, 3).map(r => ({...r, who: accLabel(a)})));
+  $('#view').innerHTML = `<div class="an"><div class="pagehead"><a class="btn sm ghost" href="#/analiz">← Markalar</a><h1 tabindex="-1">${esc(b.brand)}</h1>
+      <span class="meta">${b.accounts.length} hesap · ${b.post_count} video</span><span class="grow"></span>
+      <button class="btn primary" data-an="accadd" data-brand="${b.id}">+ Hesap ekle</button>
+      <details class="menu"><summary aria-label="Marka işlemleri">⋯</summary><div class="pop"><button data-an="brandrename" data-brand="${b.id}">Yeniden adlandır</button><button class="danger" data-an="branddel" data-brand="${b.id}">Markayı sil</button></div></details></div>
+    <div class="kpis"><div class="kpi"><b>${fmt(b.total_views)}</b><span>toplam izlenme (çekilen videolar)</span></div><div class="kpi"><b>${b.post_count}</b><span>video</span></div><div class="kpi"><b>${b.accounts.length}</b><span>hesap</span></div></div>
+    ${planBlock(b)}
+    <section class="brandbox"><h2>Hesapları karşılaştır</h2>${accountCompare(b)}</section>
+    <section class="brandbox"><h2>Hesaplar</h2>${b.accounts.map(accountRow).join('') || '<p class="empty">Hesap yok.</p>'}</section>
+    ${accRecs.length ? `<section class="brandbox"><h2>Bu markada öncelikli yapılacaklar</h2>${accRecs.map(r => recsBlock([r], r.who)).join('')}</section>` : ''}</div>`;
+}
+
+function renderAccount(a) {
+  const b = (S.an.brands || []).find(x => x.accounts.some(y => y.id === a.id));
+  const tr = a.insights?.trend;
+  $('#view').innerHTML = `<div class="an" data-acc="${a.id}"><div class="pagehead"><a class="btn sm ghost" href="#/analiz/b/${b ? b.id : ''}">← ${esc(a.brand)}</a><h1 tabindex="-1">${esc(accLabel(a))}</h1>
+      ${tr ? `<span class="vchip ${tr.label === 'büyüyor' ? 'ok' : tr.label === 'soğuyor' ? 'bad' : 'muted'}">Trend: ${tr.label}</span>` : ''}<span class="grow"></span>
+      <a class="btn sm" href="${esc(PROFILE[a.platform](encodeURIComponent(a.handle)))}" target="_blank" rel="noopener noreferrer">Profili aç ↗</a>
+      ${a.platform === 'youtube' ? `<button class="btn sm" data-act="ansync" ${a.sync_status === 'calisiyor' ? 'disabled' : ''}>Verileri çek</button>` : ''}<button class="btn sm" data-act="anpost">Video linki ekle</button></div>
+    ${a.sync_error ? `<div class="err">${esc(a.sync_error)}</div>` : ''}
+    <div class="kpis"><div class="kpi"><b>${fmt(a.followers)}</b><span>takipçi</span></div><div class="kpi"><b>${a.post_count}</b><span>video</span></div><div class="kpi"><b>${fmt(a.median_views)}</b><span>medyan izlenme</span></div>
+      <div class="kpi"><b>${pc(a.median_engagement)}</b><span>medyan etkileşim</span></div><div class="kpi"><b>${fmt(a.total_views)}</b><span>toplam izlenme</span></div></div>
+    <section class="brandbox"><h2>Ne yapmalısın?</h2>${recsBlock(a.recs)}</section>
+    ${highlightsBlock(a.highlights) ? `<section class="brandbox"><h2>Videolar</h2>${highlightsBlock(a.highlights)}</section>` : ''}
+    ${insightsBlock(a)}
+    <section class="brandbox"><h2>Tüm videolar</h2>${a.post_count ? postsTable(a) : '<p class="empty">Henüz video yok. “Verileri çek” ya da “Video linki ekle” kullan.</p>'}</section></div>`;
+}
+
+function renderOverview() {
+  const bs = S.an.brands;
+  const card = (b) => { const p = b.plan, top = b.accounts.map(a => topRec(a)).find(Boolean);
+    return `<a class="brandcard" href="#/analiz/b/${b.id}"><div class="bch"><b>${esc(b.brand)}</b>${p && p.total ? verdictChip(p) : ''}</div>
+      <span class="stat">${b.accounts.length} hesap · ${b.post_count} video · ${fmt(b.total_views)} izlenme</span>
+      ${p && p.total ? `<div class="pbar sm"><i style="width:${Math.round((p.progress || 0) * 100)}%"></i></div><span class="stat">${p.done}/${p.total} içerik yüklendi${p.forecast && p.remaining ? ` · tahmini bitiş ${fdate(p.forecast)}` : ''}</span>` : '<span class="stat">Plan yok</span>'}
+      ${top ? `<small class="brec">${esc(top.text.slice(0, 110))}</small>` : ''}</a>`; };
+  const un = S.an.plan_unassigned;
+  $('#view').innerHTML = `<div class="an"><div class="pagehead"><h1 tabindex="-1">Analiz</h1><span class="meta">${bs.length} marka · ${allAccounts().length} hesap</span><span class="grow"></span>
+      <button class="btn primary" data-an="brandadd">+ Marka ekle</button></div>
+    <p class="hint">Önce markayı oluştur, sonra her markaya istediğin kadar hesap (YouTube, TikTok, Instagram) ekle. Her markanın sayfasında içerik planı ve ne zaman biteceği, hesap sayfasında hangi içeriğin tuttuğu ve ne yapman gerektiği var.</p>
+    ${bs.length ? `<div class="brandgrid">${bs.map(card).join('')}</div>` : '<p class="empty">Henüz marka yok. “+ Marka ekle” ile başla.</p>'}
+    ${un ? `<section class="brandbox"><h2>Markasız planlar</h2><p class="stat">${un.total} iş hiçbir markayla eşleşmiyor (iş panosunda marka adı yazılmamış ya da silinmiş bir marka). Markayı ekleyince buraya bağlanır.</p></section>` : ''}</div>`;
+}
+
+function renderPostPage(p, a) {
+  $('#view').innerHTML = `<div class="an"><div class="pagehead"><a class="btn sm ghost" href="#/analiz/h/${a.id}">← ${esc(accLabel(a))}</a><h1 tabindex="-1" style="font-size:24px">${esc(p.title || p.url)}</h1>
+      <span class="grow"></span><a class="btn sm" href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer">Platformda aç ↗</a></div>
+    <div class="kpis"><div class="kpi"><b>${fmt(p.views)}</b><span>izlenme</span></div><div class="kpi"><b>${xs(p.outlier)}</b><span>güç${p.hot ? ' 🔥' : ''}</span></div><div class="kpi"><b>${pc(p.engagement)}</b><span>etkileşim</span></div>
+      <div class="kpi"><b>${p.duration != null ? p.duration + ' sn' : '–'}</b><span>süre · ${p.format === 'short' ? 'Short' : 'uzun'}</span></div><div class="kpi"><b>${p.age_days ?? '–'}</b><span>gün önce</span></div></div>
+    <div id="vidanalysis"></div></div>`;
+}
+
 function renderAnalytics(r) {
   if (!S.an) { $('#view').innerHTML = '<p class="empty">Analiz verisi yükleniyor…</p>'; loadAnalytics().catch(() => {}); return; }
-  const brands = S.an.brands.filter(b => !r.brand || b.brand === r.brand);
-  $('#view').innerHTML = `<div class="an"><div class="pagehead"><h1 tabindex="-1">${r.brand ? esc(r.brand) : 'Analiz'}</h1>
-      <span class="meta">${S.an.brands.length} marka · ${S.an.brands.reduce((n, b) => n + b.accounts.length, 0)} hesap</span><span style="flex:1"></span>
-      <button class="btn primary" data-act="anadd">+ Hesap ekle</button></div>
-    <p class="hint">Her markanın TikTok, YouTube ve Instagram hesapları burada. <b>Güç</b> = videonun izlenmesi ÷ aynı hesap ve aynı biçimdeki (Short/uzun) diğer olgun videoların medyanı; 2× ve üstü yeşil, 🔥 = çok tutan, ⚠ = şüpheli trafik, <b>Hız</b> = saatlik izlenme (iki çekim gerekir).</p>` +
-    (brands.map(b => `<section class="brandbox"><h2>${esc(b.brand)}</h2>
-      <div class="kpis"><div class="kpi"><b>${fmt(b.total_views)}</b><span>toplam izlenme (çekilen videolar)</span></div><div class="kpi"><b>${b.post_count}</b><span>video</span></div>
-      <div class="kpi"><b>${b.accounts.length}</b><span>hesap</span></div></div>${b.accounts.map(accountRow).join('')}</section>`).join('')
-      || '<p class="empty">Henüz hesap yok. “+ Hesap ekle” ile ilk markanı ve hesabını ekle.</p>') + '</div>';
+  let view = null, h1 = true;
+  if (r.account) { const a = findAcc(r.account); if (a) { renderAccount(a); view = 1; } }
+  else if (r.post) {
+    for (const a of allAccounts()) { const p = a.posts.find(x => x.id === r.post); if (p) { renderPostPage(p, a); view = 1; if (typeof loadVideoAnalysis === 'function') loadVideoAnalysis(p, a); break; } }
+  } else if (r.brandId || r.brand) {
+    const b = r.brandId ? findBrand(r.brandId) : (S.an.brands || []).find(x => x.brand.toLowerCase() === r.brand.toLowerCase());
+    if (b) { renderBrand(b); view = 1; }
+  } else { renderOverview(); view = 1; }
+  if (!view) $('#view').innerHTML = '<p class="empty">Bulunamadı. <a href="#/analiz">Markalara dön</a></p>';
+  else $('#view h1')?.focus({preventScroll: true});
 }
+
+// ---- Analiz: marka/hesap/plan işlemleri ----
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-an]'); if (!b || ['SELECT', 'INPUT', 'TEXTAREA', 'FORM'].includes(b.tagName)) return;
+  const act = b.dataset.an, bid = +b.dataset.brand;
+  b.closest('details.menu')?.removeAttribute('open');
+  if (act === 'brandadd') {
+    const v = await ask({title: 'Yeni marka', text: 'Markanın adını yaz. Sonra bu markaya istediğin kadar hesap ekleyebilirsin.', fields: [{label: 'Marka adı'}], confirm: 'Oluştur'},
+      async (v) => { const x = await run('POST', '/api/analytics/brands', {name: v[0]}); if (x) S.an = x; return !!x; });
+    if (v) { const nb = S.an.brands.find(x => x.brand.toLowerCase() === v[0].trim().replace(/\s+/g, ' ').toLowerCase()); toast('Marka eklendi'); location.hash = nb ? '#/analiz/b/' + nb.id : '#/analiz'; render(); }
+  } else if (act === 'brandrename') {
+    const br = findBrand(bid);
+    const v = await ask({title: 'Markayı yeniden adlandır', text: 'Hesaplar ve iş panosundaki planlar yeni adla eşleşir.', fields: [{label: 'Marka adı', value: br.brand}], confirm: 'Kaydet'},
+      async (v) => { const x = await run('PATCH', `/api/analytics/brands/${bid}`, {name: v[0]}); if (x) S.an = x; return !!x; });
+    if (v) { toast('Ad değişti'); render(); }
+  } else if (act === 'branddel') {
+    if (!confirm('Marka silinsin mi? (Yalnızca hesabı olmayan marka silinir.)')) return;
+    const x = await run('DELETE', `/api/analytics/brands/${bid}`);
+    if (x) { S.an = x; location.hash = '#/analiz'; render(); toast('Marka silindi'); }
+  } else if (act === 'accadd') {
+    const br = findBrand(bid);
+    const v = await ask({title: `Hesap ekle: ${br.brand}`, text: 'Platform ve kullanıcı adı (ya da profil linki). Aynı markaya istediğin kadar hesap ekleyebilirsin.', confirm: 'Ekle',
+      fields: [{label: 'Platform', options: [{value: 'youtube', label: 'YouTube'}, {value: 'tiktok', label: 'TikTok'}, {value: 'instagram', label: 'Instagram'}]}, {label: 'Kullanıcı adı veya link'}]},
+      async (v) => { const x = await run('POST', '/api/analytics/accounts', {brand: br.brand, platform: v[0], handle: v[1]}); if (x) S.an = x; return !!x; });
+    if (v) { toast('Hesap eklendi'); render(); }
+  }
+});
+document.addEventListener('submit', async (e) => {
+  const f = e.target.closest('[data-an=planform]'); if (!f) return;
+  e.preventDefault();
+  const ta = f.querySelector('textarea'), text = ta.value.trim(); if (!text) { toast('Önce planı yaz'); return; }
+  const x = await run('POST', `/api/analytics/brands/${f.dataset.brand}/plan`, {text, platform: f.querySelector('select').value});
+  if (x) { S.an = x; S.board = null; toast('Plana eklendi'); render(); }
+});
 
 /* ---------- Kanal tabloları (platform başına tek tablo, tüm markalar) ---------- */
 const PROFILE = {youtube: h => 'https://www.youtube.com/@' + h, tiktok: h => 'https://www.tiktok.com/@' + h, instagram: h => 'https://www.instagram.com/' + h + '/'};

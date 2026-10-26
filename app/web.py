@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Red
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, StringConstraints
 
-from . import analytics, auth, board, channels, db, review, texts
+from . import analytics, auth, board, channels, db, planning, review, texts
 from .cards import format_card
 from .catalog import Catalog, CatalogError
 from .config import Categories, Config
@@ -213,6 +213,19 @@ class HubUpdate(BaseModel):
     content: str = Field(max_length=4_000_000)
     note: str = Field("", max_length=2000)
     force: bool = False
+
+
+class BrandBody(BaseModel):
+    name: str = Field(max_length=100)
+
+
+class PlanBulk(BaseModel):
+    text: str = Field(max_length=20000)
+    platform: str = Field("", max_length=20)
+
+
+class AccountMove(BaseModel):
+    brand_id: int
 
 
 class BatchAdd(BaseModel):
@@ -460,6 +473,50 @@ def create_app(config: Config, categories: Categories,
                 analytics.add_account(c, body.brand, body.platform, body.handle)
             except analytics.AnalyticsError as e:
                 raise HTTPException(e.status, str(e))
+            return analytics.overview(c)
+
+    def an_call(fn, *args):
+        try:
+            return fn(*args)
+        except analytics.AnalyticsError as e:
+            raise HTTPException(e.status, str(e))
+
+    @app.post("/api/analytics/brands", status_code=201)
+    def brand_add(body: BrandBody):
+        with conn() as c:
+            an_call(analytics.add_brand, c, body.name)
+            return analytics.overview(c)
+
+    @app.patch("/api/analytics/brands/{brand_id}")
+    def brand_rename(brand_id: int, body: BrandBody):
+        with conn() as c:
+            an_call(analytics.rename_brand, c, brand_id, body.name)
+            return analytics.overview(c)
+
+    @app.delete("/api/analytics/brands/{brand_id}")
+    def brand_delete(brand_id: int):
+        with conn() as c:
+            an_call(analytics.delete_brand, c, brand_id)
+            return analytics.overview(c)
+
+    @app.post("/api/analytics/brands/{brand_id}/plan", status_code=201)
+    def brand_plan_add(brand_id: int, body: PlanBulk):
+        """Toplu içerik planı: her satır 'Başlık | 2026-11-03 | youtube' -> iş panosunda bu marka için iş."""
+        with conn() as c:
+            row = c.execute("SELECT name FROM brands WHERE id = ?", (brand_id,)).fetchone()
+            if row is None:
+                raise HTTPException(404, "Marka yok")
+            items = planning.parse_lines(body.text, body.platform)
+            if not items:
+                raise HTTPException(400, "En az bir satır yaz: Başlık | tarih | platform")
+            for it in items:
+                board_call(board.add_task, c, it["title"], brand=row["name"], platform=it["platform"], due=it["due"])
+            return analytics.overview(c)
+
+    @app.patch("/api/analytics/accounts/{account_id}")
+    def account_move(account_id: int, body: AccountMove):
+        with conn() as c:
+            an_call(analytics.move_account, c, account_id, body.brand_id)
             return analytics.overview(c)
 
     @app.delete("/api/analytics/accounts/{account_id}")

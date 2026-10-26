@@ -8,7 +8,7 @@ import threading
 from datetime import datetime, timezone
 from typing import Callable
 
-from . import insights
+from . import insights, planning, recommend
 
 PLATFORMS = ("youtube", "tiktok", "instagram")
 SHORT_MAX_SECONDS = 180
@@ -16,6 +16,12 @@ SHORT_MAX_SECONDS = 180
 RESERVED = {"channel", "c", "user", "watch", "reel", "reels", "p", "shorts", "video", "playlist", "tv", "stories", "explore"}
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS brands (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    position INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 CREATE TABLE IF NOT EXISTS accounts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     brand TEXT NOT NULL,
@@ -92,13 +98,92 @@ def profile_url(platform: str, handle: str) -> str:
             "instagram": f"https://www.instagram.com/{handle}/"}[platform]
 
 
+_migrated: set[str] = set()
+
+
+def migrate(conn: sqlite3.Connection) -> None:
+    """Eski hesaplardaki marka adlarından marka kayıtları oluşturur (süreç başına veritabanı başına bir kez)."""
+    key = next((r["file"] for r in conn.execute("PRAGMA database_list") if r["name"] == "main"), "")
+    if key and key in _migrated:
+        return
+    for r in conn.execute("SELECT DISTINCT brand FROM accounts WHERE brand != ''").fetchall():
+        try:
+            ensure_brand(conn, r["brand"])
+        except AnalyticsError:
+            pass
+    conn.commit()
+    if key:
+        _migrated.add(key)
+
+
+def clean_brand(name: str) -> str:
+    name = " ".join((name or "").split())
+    if not name or len(name) > 60 or any(c in name for c in "<>/\\") or any(ord(c) < 32 for c in name):
+        raise AnalyticsError("Marka adı 1-60 karakter olmalı ( < > / \\ olmadan)")
+    return name
+
+
+def ensure_brand(conn: sqlite3.Connection, name: str) -> int:
+    name = clean_brand(name)
+    row = conn.execute("SELECT id FROM brands WHERE name = ?", (name,)).fetchone()
+    if row:
+        return row["id"]
+    pos = conn.execute("SELECT COALESCE(MAX(position), 0) + 1 FROM brands").fetchone()[0]
+    return conn.execute("INSERT INTO brands (name, position) VALUES (?, ?)", (name, pos)).lastrowid
+
+
+def add_brand(conn: sqlite3.Connection, name: str) -> int:
+    name = clean_brand(name)
+    if conn.execute("SELECT 1 FROM brands WHERE name = ?", (name,)).fetchone():
+        raise AnalyticsError("Bu marka zaten var", 409)
+    bid = ensure_brand(conn, name)
+    conn.commit()
+    return bid
+
+
+def rename_brand(conn: sqlite3.Connection, brand_id: int, name: str) -> None:
+    """Adı değişince hesaplar ve iş panosundaki (plan) kayıtlar da yeni adla eşleşir."""
+    name = clean_brand(name)
+    row = conn.execute("SELECT name FROM brands WHERE id = ?", (brand_id,)).fetchone()
+    if row is None:
+        raise AnalyticsError("Marka yok", 404)
+    if conn.execute("SELECT 1 FROM brands WHERE name = ? AND id != ?", (name, brand_id)).fetchone():
+        raise AnalyticsError("Bu adda başka bir marka var", 409)
+    conn.execute("UPDATE brands SET name = ? WHERE id = ?", (name, brand_id))
+    conn.execute("UPDATE accounts SET brand = ? WHERE brand = ? COLLATE NOCASE", (name, row["name"]))
+    conn.execute("UPDATE tasks SET brand = ? WHERE brand = ? COLLATE NOCASE", (name, row["name"]))
+    conn.commit()
+
+
+def delete_brand(conn: sqlite3.Connection, brand_id: int) -> None:
+    """Yalnızca hesabı olmayan marka silinir (veri kaybı olmasın): hesapları önce başka markaya taşı veya sil."""
+    row = conn.execute("SELECT name FROM brands WHERE id = ?", (brand_id,)).fetchone()
+    if row is None:
+        raise AnalyticsError("Marka yok", 404)
+    n = conn.execute("SELECT COUNT(*) FROM accounts WHERE brand = ? COLLATE NOCASE", (row["name"],)).fetchone()[0]
+    if n:
+        raise AnalyticsError(f"Markada {n} hesap var; önce hesapları başka markaya taşı veya sil", 409)
+    conn.execute("DELETE FROM brands WHERE id = ?", (brand_id,))
+    conn.commit()
+
+
+def move_account(conn: sqlite3.Connection, account_id: int, brand_id: int) -> None:
+    b = conn.execute("SELECT name FROM brands WHERE id = ?", (brand_id,)).fetchone()
+    if b is None:
+        raise AnalyticsError("Marka yok", 404)
+    if not conn.execute("UPDATE accounts SET brand = ? WHERE id = ?", (b["name"], account_id)).rowcount:
+        raise AnalyticsError("Hesap yok", 404)
+    conn.commit()
+
+
 def add_account(conn: sqlite3.Connection, brand: str, platform: str, raw_handle: str) -> int:
-    brand = " ".join(brand.split())
-    if not brand or len(brand) > 60:
-        raise AnalyticsError("Marka adı 1-60 karakter olmalı")
+    brand = clean_brand(brand)
     if platform not in PLATFORMS:
         raise AnalyticsError("Platform youtube, tiktok veya instagram olmalı")
     handle = clean_handle(platform, raw_handle)
+    brand = conn.execute("SELECT name FROM brands WHERE name = ?", (brand,)).fetchone()["name"] \
+        if conn.execute("SELECT 1 FROM brands WHERE name = ?", (brand,)).fetchone() else brand
+    ensure_brand(conn, brand)
     try:
         cur = conn.execute("INSERT INTO accounts (brand, platform, handle) VALUES (?, ?, ?)",
                            (brand, platform, handle))
@@ -162,6 +247,8 @@ def overview(conn: sqlite3.Connection) -> dict:
     for r in conn.execute("SELECT post_id, taken_at, views FROM snapshots WHERE taken_at >= datetime('now', '-30 days') ORDER BY taken_at"):
         snaps_by_post.setdefault(r["post_id"], []).append(dict(r))
     brands: dict[str, dict] = {}
+    for b0 in conn.execute("SELECT id, name FROM brands ORDER BY position, id"):
+        brands[b0["name"].lower()] = {"id": b0["id"], "brand": b0["name"], "accounts": [], "total_views": 0, "post_count": 0}
     for a in accounts:
         posts = posts_by_acc.get(a["id"], [])
         # güç skoru: aynı hesap + aynı biçim, olgun videolar; z, VSR, şüpheli trafik, hız (bkz. insights.py)
@@ -169,6 +256,10 @@ def overview(conn: sqlite3.Connection) -> dict:
         for p in posts:
             p.update(insights.velocity(snaps_by_post.get(p["id"], [])))
         a["insights"] = insights.account_insights(posts)
+        a["recs"] = recommend.recommendations(posts, a["insights"])
+        a["highlights"] = recommend.top_and_weak(posts)
+        engs = [p["engagement"] for p in posts if p.get("engagement") is not None]
+        a["median_engagement"] = round(statistics.median(engs), 2) if engs else None
         views = [p["views"] for p in posts if p["views"] is not None]
         known = [v for v in views if v]  # güç skorunun paydasıyla aynı medyan
         a["post_count"] = len(posts)
@@ -176,11 +267,19 @@ def overview(conn: sqlite3.Connection) -> dict:
         a["total_views"] = sum(views) if views else 0
         a["best"] = max(posts, key=lambda p: p["views"] or 0) if posts else None
         a["posts"] = posts
-        b = brands.setdefault(a["brand"], {"brand": a["brand"], "accounts": [], "total_views": 0, "post_count": 0})
+        b = brands.setdefault(a["brand"].lower(), {"id": None, "brand": a["brand"], "accounts": [], "total_views": 0, "post_count": 0})
         b["accounts"].append(a)
         b["total_views"] += a["total_views"]
         b["post_count"] += a["post_count"]
-    return {"brands": list(brands.values()), "platforms": list(PLATFORMS)}
+    # içerik planı: iş panosundaki işler marka adıyla eşleşir (büyük/küçük harf farkı yok sayılır)
+    tasks_by: dict[str, list[dict]] = {}
+    for t in conn.execute("SELECT * FROM tasks ORDER BY id"):
+        tasks_by.setdefault((t["brand"] or "").strip().lower(), []).append(dict(t))
+    for key, b in brands.items():
+        b["plan"] = planning.summarize(tasks_by.pop(key, []))
+    loose = [t for ts in tasks_by.values() for t in ts]  # hiçbir markayla eşleşmeyen işler
+    return {"brands": list(brands.values()), "platforms": list(PLATFORMS),
+            "plan_unassigned": planning.summarize(loose) if loose else None}
 
 
 # ---------------- yt-dlp ile veri çekme ----------------

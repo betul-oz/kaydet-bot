@@ -120,8 +120,16 @@ DUR_BUCKETS = [(0, 15, "0-15 sn"), (15, 30, "15-30 sn"), (30, 60, "30-60 sn"), (
 HOUR_BUCKETS = [(0, 6, "00-06"), (6, 12, "06-12"), (12, 18, "12-18"), (18, 24, "18-24")]
 
 
-def _group_stats(items: list[float]) -> dict:
-    return {"n": len(items), "median": round(_med(items), 2) if items else None, "few": len(items) < MIN_GROUP}
+def _group_stats(items: list[tuple]) -> dict:
+    """items: [(güç, etkileşim %)]. median = medyan güç, eng = medyan etkileşim oranı (%)."""
+    pw = [x[0] for x in items]
+    en = [x[1] for x in items if x[1] is not None]
+    return {"n": len(pw), "median": round(_med(pw), 2) if pw else None, "eng": round(_med(en), 2) if en else None,
+            "few": len(pw) < MIN_GROUP}
+
+
+def _pe(p: dict) -> tuple:
+    return (p["outlier"], p.get("engagement"))
 
 
 def title_features(title: str) -> dict[str, bool]:
@@ -136,26 +144,48 @@ def lift_table(posts: list[dict], boot: int = 200) -> list[dict]:
     scored = [p for p in posts if p.get("outlier") is not None]
     rows = []
     for name in title_features("").keys():
-        yes = [p["outlier"] for p in scored if title_features(p.get("title", ""))[name]]
-        no = [p["outlier"] for p in scored if not title_features(p.get("title", ""))[name]]
-        row = {"feature": name, "n_yes": len(yes), "n_no": len(no), "med_yes": None, "med_no": None, "lift": None, "few": True}
+        yes = [p for p in scored if title_features(p.get("title", ""))[name]]
+        no = [p for p in scored if not title_features(p.get("title", ""))[name]]
+        row = {"feature": name, "n_yes": len(yes), "n_no": len(no), "med_yes": None, "med_no": None, "lift": None,
+               "eng_yes": None, "eng_no": None, "eng_lift": None, "few": True}
         if yes and no:
-            my, mn = _med(yes), _med(no)
+            my, mn = _med([p["outlier"] for p in yes]), _med([p["outlier"] for p in no])
+            ey = _med([p["engagement"] for p in yes if p.get("engagement") is not None])
+            en = _med([p["engagement"] for p in no if p.get("engagement") is not None])
             row.update(med_yes=round(my, 2), med_no=round(mn, 2), lift=round(my / mn, 2) if mn else None,
+                       eng_yes=round(ey, 2) if ey is not None else None, eng_no=round(en, 2) if en is not None else None,
+                       eng_lift=round(ey / en, 2) if ey is not None and en else None,
                        few=len(yes) < MIN_GROUP or len(no) < MIN_GROUP)
         rows.append(row)
     return rows
 
 
 def hashtag_table(posts: list[dict], min_n: int = 3) -> list[dict]:
-    agg: dict[str, list[float]] = {}
+    agg: dict[str, list[tuple]] = {}
     for p in posts:
         if p.get("outlier") is None:
             continue
         for tag in {m.lower() for m in _HASH.findall(p.get("title", ""))}:
-            agg.setdefault(tag, []).append(p["outlier"])
-    out = [{"tag": t, "n": len(v), "median": round(_med(v), 2)} for t, v in agg.items() if len(v) >= min_n]
+            agg.setdefault(tag, []).append(_pe(p))
+    out = [{"tag": t, "n": len(v), **{k: x for k, x in _group_stats(v).items() if k in ("median", "eng")}} for t, v in agg.items() if len(v) >= min_n]
     return sorted(out, key=lambda r: (-r["median"], r["tag"]))[:12]
+
+
+_STOP = set("ve ile bir bu şu için gibi daha çok en de da mi mı mu mü ne ama ya veya the and for with that this you your from are was how what why".split())
+_WORD = re.compile(r"[^\W\d_]{4,}", re.UNICODE)
+
+
+def keyword_table(posts: list[dict], min_n: int = 3, limit: int = 12) -> list[dict]:
+    """Başlıktaki anahtar kelimelere (konu vekili) göre güç ve etkileşim: hangi konu tutuyor?"""
+    agg: dict[str, list[tuple]] = {}
+    for p in posts:
+        if p.get("outlier") is None:
+            continue
+        words = {w.lower() for w in _WORD.findall(_HASH.sub(" ", p.get("title", "")))} - _STOP
+        for w in words:
+            agg.setdefault(w, []).append(_pe(p))
+    rows = [{"word": w, "n": len(v), **{k: x for k, x in _group_stats(v).items() if k in ("median", "eng")}} for w, v in agg.items() if len(v) >= min_n]
+    return sorted(rows, key=lambda r: (-r["median"], r["word"]))[:limit]
 
 
 def account_insights(posts: list[dict], tz: tzinfo | None = None, now: datetime | None = None) -> dict:
@@ -169,19 +199,19 @@ def account_insights(posts: list[dict], tz: tzinfo | None = None, now: datetime 
     days = [[] for _ in range(7)]
     for p, d in rawdt:
         if d is not None:
-            days[(local(d) if id(p) in timed else d).weekday()].append(p["outlier"])
+            days[(local(d) if id(p) in timed else d).weekday()].append(_pe(p))
     hours = {lab: [] for _, _, lab in HOUR_BUCKETS}
     for p, d in has_time:
         h = local(d).hour
         for lo, hi, lab in HOUR_BUCKETS:
             if lo <= h < hi:
-                hours[lab].append(p["outlier"])
+                hours[lab].append(_pe(p))
     durs = {lab: [] for _, _, lab in DUR_BUCKETS}
     for p in scored:
         if p.get("duration") is not None:
             for lo, hi, lab in DUR_BUCKETS:
                 if lo <= p["duration"] < hi:
-                    durs[lab].append(p["outlier"])
+                    durs[lab].append(_pe(p))
     fmts = {}
     for f in ("short", "uzun"):
         vs = [p["views"] for p in posts if p.get("format") == f and p.get("views")]
@@ -203,6 +233,7 @@ def account_insights(posts: list[dict], tz: tzinfo | None = None, now: datetime 
         "formats": fmts,
         "features": lift_table(scored),
         "hashtags": hashtag_table(scored),
+        "keywords": keyword_table(scored),
         "trend": trend,
         "n_scored": len(scored),
     }

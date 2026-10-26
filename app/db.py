@@ -57,6 +57,7 @@ def connect(path: str | Path) -> sqlite3.Connection:
     conn.executescript(channels.SCHEMA)
     conn.executescript(texts.SCHEMA)
     channels.migrate(conn)
+    analytics.migrate(conn)
     return conn
 
 
